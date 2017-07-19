@@ -9,14 +9,15 @@ def load_csv(filename):
     with open(filename) as f:
         lines = f.readlines()
         for l in lines:
-            parts = l.split(',')
-            if 0 == len(parts):
-                continue
-            elif 1 == len(parts):
-                played = False
-            else:
-                played = bool(parts[1].replace('\n', ''))
-            songs[parts[0].replace('\n', '')] = played
+            if not l.startswith('#'):
+                parts = l.split(',')
+                if 0 == len(parts):
+                    continue
+                elif 1 == len(parts):
+                    played = False
+                else:
+                    played = bool(parts[1].replace('\n', ''))
+                songs[parts[0].replace('\n', '')] = played
     return songs
 
 
@@ -28,6 +29,8 @@ def update_list(songname, playlist_dict):
             else:
                 played = playlist_dict[song]
             f.write("%s,%s\n" % (song, str(played)))
+    with open('mindful.log', 'a') as f:
+        f.write("Played %s\n" % songname)
 
 
 def load_playlist():
