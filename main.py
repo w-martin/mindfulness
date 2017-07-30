@@ -36,23 +36,23 @@ def load_csv(filename):
 
 
 def update_list(songname, playlist_dict):
-    with open('playlist.csv', 'w') as f:
+    with open('/opt/mindfulness/playlist.csv', 'w') as f:
         for song in playlist_dict:
             if song == songname:
                 played = True
             else:
                 played = playlist_dict[song]
             f.write("%s,%s\n" % (song, str(played)))
-    with open('mindful.log', 'a') as f:
+    with open('/opt/mindfulness/mindful.log', 'a') as f:
         f.write("Played %s at %s\n" % (songname, datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y")))
 
 
 def load_playlist():
-    return load_csv('playlist.csv')
+    return load_csv('/opt/mindfulness/playlist.csv')
 
 
 def play_mindful():
-    songname = "mindful.mp3"
+    songname = "/opt/mindfulness/mindful.mp3"
     logging.info("Playing %s" % songname)
     play_mp3(songname, 66)
 
@@ -93,32 +93,40 @@ def select_song(playlist_dict):
 
 
 def play_song(songname):
-    songname = "song.mkv"
+    songname = "/opt/mindfulness/song.mkv"
     return play_mp3(songname, 60 * 10)
 
 
 def download_song(songname):
-    local_song = "song"
+    local_song = "/opt/mindfulness/song"
     os.system("youtube-dl %s -o %s" % (songname, local_song))
-    if os.path.exists("song"):
-       os.rename("song", "song.mkv")
-    logging.info("Downloaded %s to song.mkv" % songname)
+    if os.path.exists("/opt/mindfulness/song"):
+       os.rename("/opt/mindfulness/song", "/opt/mindfulness/song.mkv")
+    logging.info("Downloaded %s to /opt/mindfulness/song.mkv" % songname)
+    return os.path.exists("/opt/mindfulness/song.mkv")
 
 
 def main():
     playlist_dict = load_playlist()
     song = select_song(playlist_dict)
+    success = False
     if song is not None:
-        download_song(song)
+        success = download_song(song)
+    if not song:
+        logging.error("No song. Exiting.")
+        sys.exit(1)
+    if not success:
+        logging.error("Download failed. Exiting.")
+        sys.exit(1)
     play_mindful()
     if song is not None:
         played = play_song(song)
         if played:
             logging.info("Song played")
-            os.remove("song.mkv")
-            logging.info("Removed song.mkv")
+            os.remove("/opt/mindfulness/song.mkv")
+            logging.info("Removed /opt/mindfulness/song.mkv")
             update_list(song, playlist_dict)
-            logging.info("Updated playlist.csv")
+            logging.info("Updated /opt/mindfulness/playlist.csv")
         else:
             logging.info("Song did not play")
 

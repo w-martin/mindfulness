@@ -2,4 +2,5 @@
 .project
 .pydevproject
 *.mkv
-/mindful.mp3
+*.mp3
+playlist.csv

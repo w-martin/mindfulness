@@ -1,1 +1,5 @@
-0 15 * * 1-5 /usr/bin/python /opt/mindfulness/main.py >/dev/null 2>&1
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin
+XDG_RUNTIME_DIR=/run/user/1001
+
+59 14 * * 1-5 /opt/mindfulness/run.sh > /tmp/mindful.log
+
