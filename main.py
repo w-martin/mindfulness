@@ -2,6 +2,19 @@ import os
 import vlc
 import time
 import calendar
+import logging
+import ast
+import datetime
+import sys
+
+root = logging.getLogger()
+root.setLevel(logging.DEBUG)
+
+ch = logging.StreamHandler(sys.stdout)
+ch.setLevel(logging.DEBUG)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+ch.setFormatter(formatter)
+root.addHandler(ch)
 
 
 def load_csv(filename):
@@ -16,8 +29,9 @@ def load_csv(filename):
                 elif 1 == len(parts):
                     played = False
                 else:
-                    played = bool(parts[1].replace('\n', ''))
+                    played = ast.literal_eval(parts[1].replace('\n', ''))
                 songs[parts[0].replace('\n', '')] = played
+    logging.info("Loaded %d songs, of which %d have been played" % (len(songs), sum(songs.values())))
     return songs
 
 
@@ -30,7 +44,7 @@ def update_list(songname, playlist_dict):
                 played = playlist_dict[song]
             f.write("%s,%s\n" % (song, str(played)))
     with open('mindful.log', 'a') as f:
-        f.write("Played %s\n" % songname)
+        f.write("Played %s at %s\n" % (songname, datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y")))
 
 
 def load_playlist():
@@ -39,21 +53,31 @@ def load_playlist():
 
 def play_mindful():
     songname = "mindful.mp3"
-    print("Playing %s" % songname)
-    play_mp3(songname)
+    logging.info("Playing %s" % songname)
+    play_mp3(songname, 66)
 
 
-def play_mp3(songname):
+def current_time():
+    t = int(time.time())
+    return t
+
+
+def play_mp3(songname, timeout=None):
     played = False
     p = vlc.MediaPlayer(songname)
     length = p.get_length()
-    start_time = calendar.timegm(time.gmtime())
-    print("Playing %s" % songname)
+    if -1 == length and timeout:
+        length = timeout
+    start_time = current_time()
+    logging.info("Playing %s for %d seconds" % (songname, length))
     p.play()
     time.sleep(10)
-    while p.is_playing():
-        time.sleep(2)
+    while length > (current_time() - start_time):
+        time.sleep(5)
         played = True
+    logging.info("%d <= %d - stopping" % (length, (current_time() - start_time)))
+    if timeout:
+        p.stop()
     return played
 
 
@@ -70,12 +94,15 @@ def select_song(playlist_dict):
 
 def play_song(songname):
     songname = "song.mkv"
-    return play_mp3(songname)
+    return play_mp3(songname, 60 * 10)
 
 
 def download_song(songname):
     local_song = "song"
     os.system("youtube-dl %s -o %s" % (songname, local_song))
+    if os.path.exists("song"):
+       os.rename("song", "song.mkv")
+    logging.info("Downloaded %s to song.mkv" % songname)
 
 
 def main():
@@ -83,12 +110,17 @@ def main():
     song = select_song(playlist_dict)
     if song is not None:
         download_song(song)
-    # play_mindful()
+    play_mindful()
     if song is not None:
-        played = True  # play_song(song)
+        played = play_song(song)
         if played:
+            logging.info("Song played")
             os.remove("song.mkv")
+            logging.info("Removed song.mkv")
             update_list(song, playlist_dict)
+            logging.info("Updated playlist.csv")
+        else:
+            logging.info("Song did not play")
 
 
 if __name__ == '__main__':
