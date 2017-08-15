@@ -40,9 +40,11 @@ def load_csv(filename):
 
 def update_list(songname):
     # edit in place instead of re-writing the file to preserve additional information
-    with open(PLAYLIST_PATH, 'r+') as f:
+    with open(PLAYLIST_PATH, 'r') as f:
         lines = f.readlines()
-        f.seek(0)
+
+    # re-open the file otherwise the length of the file is different (len(False) vs. len(True))
+    with open(PLAYLIST_PATH, 'w') as f:
         for line in lines:
             if songname in line:
                 line = line.replace(',False,', ',True,')
