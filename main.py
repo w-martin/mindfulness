@@ -1,7 +1,6 @@
 import os
 import vlc
 import time
-import calendar
 import logging
 import ast
 import datetime
@@ -17,6 +16,8 @@ ch.setFormatter(formatter)
 root.addHandler(ch)
 
 BASE_PATH = '/opt/mindfulness' if os.name != 'nt' else os.getcwd()
+PLAYLIST_PATH = '%s/playlist.csv' % BASE_PATH
+SONG_PLAY_PATH = "%s/song.mkv" % BASE_PATH
 
 
 def load_csv(filename):
@@ -37,20 +38,21 @@ def load_csv(filename):
     return songs
 
 
-def update_list(songname, playlist_dict):
-    with open('%s/playlist.csv' % BASE_PATH, 'w') as f:
-        for song in playlist_dict:
-            if song == songname:
-                played = True
-            else:
-                played = playlist_dict[song]
-            f.write("%s,%s\n" % (song, str(played)))
+def update_list(songname):
+    # edit in place instead of re-writing the file to preserve additional information
+    with open(PLAYLIST_PATH, 'r+') as f:
+        lines = f.readlines()
+        f.seek(0)
+        for line in lines:
+            if songname in line:
+                line = line.replace(',False,', ',True,')
+            f.write('%s' % line)
     with open('%s/mindful.log' % BASE_PATH, 'a') as f:
         f.write("Played %s at %s\n" % (songname, datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y")))
 
 
 def load_playlist():
-    return load_csv('%s/playlist.csv' % BASE_PATH)
+    return load_csv(PLAYLIST_PATH)
 
 
 def play_mindful():
@@ -94,20 +96,19 @@ def select_song(playlist_dict):
     return selected
 
 
-def play_song(songname):
-    songname = "%s/song.mkv" % BASE_PATH
-    return play_mp3(songname, 60 * 10)
+def play_song():
+    return play_mp3(SONG_PLAY_PATH, 60 * 10)
 
 
 def download_song(songname):
     local_song = "%s/song" % BASE_PATH
     os.system("youtube-dl %s -o %s" % (songname, local_song))
-    if os.path.exists("%s/song.mkv" % BASE_PATH):
-       os.remove("%s/song.mkv" % BASE_PATH)
+    if os.path.exists(SONG_PLAY_PATH):
+        os.remove(SONG_PLAY_PATH)
     if os.path.exists("%s/song" % BASE_PATH):
-       os.rename("%s/song" % BASE_PATH, "%s/song.mkv" % BASE_PATH)
+        os.rename("%s/song" % BASE_PATH, SONG_PLAY_PATH)
     logging.info("Downloaded %s to %s/song.mkv" % (songname, BASE_PATH))
-    return os.path.exists("%s/song.mkv" % BASE_PATH)
+    return os.path.exists(SONG_PLAY_PATH)
 
 
 def main():
@@ -124,12 +125,13 @@ def main():
         sys.exit(1)
     play_mindful()
     if song is not None:
-        played = play_song(song)
+        played = play_song()
         if played:
             logging.info("Song played")
-            os.remove("%s/song.mkv" % BASE_PATH)
-            logging.info("Removed %s/song.mkv" % BASE_PATH)
-            update_list(song, playlist_dict)
+            if os.path.exists(SONG_PLAY_PATH):
+                os.remove(SONG_PLAY_PATH)
+                logging.info("Removed %s/song.mkv" % BASE_PATH)
+            update_list(song)
             logging.info("Updated %s/playlist.csv" % BASE_PATH)
         else:
             logging.info("Song did not play")
