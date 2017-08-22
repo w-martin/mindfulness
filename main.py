@@ -16,32 +16,45 @@ ch.setFormatter(formatter)
 root.addHandler(ch)
 
 BASE_PATH = '/opt/mindfulness' if os.name != 'nt' else os.getcwd()
-PLAYLIST_PATH = '%s/playlist.csv' % BASE_PATH
-SONG_PLAY_PATH = "%s/song.mkv" % BASE_PATH
+PLAYLIST_PATH = os.path.join(BASE_PATH, 'playlist.csv')
+SONG_PLAY_PATH = os.path.join(BASE_PATH, 'song.mkv')
 
 
-def load_csv(filename):
+def load_csv():
     songs = dict()
-    with open(filename) as f:
-        lines = f.readlines()
-        for l in lines:
-            if not l.startswith('#'):
-                parts = l.split(',')
-                if 0 == len(parts):
-                    continue
-                elif 1 == len(parts):
-                    played = False
-                else:
-                    played = ast.literal_eval(parts[1].replace('\n', ''))
-                songs[parts[0].replace('\n', '')] = played
+    for l in read_playlist_lines():
+        if not l.startswith('#'):
+            parts = l.split(',')
+            if 0 == len(parts):
+                continue
+            elif 1 == len(parts):
+                played = False
+            else:
+                played = ast.literal_eval(parts[1].replace('\n', ''))
+            songs[parts[0].replace('\n', '')] = played
     logging.info("Loaded %d songs, of which %d have been played" % (len(songs), sum(songs.values())))
     return songs
 
 
+def read_playlist_without_newlines():
+    """ This gets the CSV data, and handles the non-existance of the file """
+    try:
+        # open read/write, so that we can make sure no new lines are created
+        with open(PLAYLIST_PATH, 'r') as f:
+            # read the file -- make a list of lines with no empty ones (and line separators removed)
+            f_data = "\n".join([x.strip() for x in f.readlines() if x.strip()])
+    except (IOError, OSError):
+        f_data = ''
+    return f_data
+
+
+def read_playlist_lines():
+    return read_playlist_without_newlines().split('\n')
+
+
 def update_list(songname):
     # edit in place instead of re-writing the file to preserve additional information
-    with open(PLAYLIST_PATH, 'r') as f:
-        lines = f.readlines()
+    lines = read_playlist_lines()
 
     # re-open the file otherwise the length of the file is different (len(False) vs. len(True))
     with open(PLAYLIST_PATH, 'w') as f:
@@ -54,7 +67,11 @@ def update_list(songname):
 
 
 def load_playlist():
-    return load_csv(PLAYLIST_PATH)
+    try:
+        return load_csv()
+    except (IOError, OSError):
+        # file could not be found or opened
+        return dict()
 
 
 def play_mindful():
@@ -103,12 +120,17 @@ def play_song():
 
 
 def download_song(songname):
-    local_song = "%s/song" % BASE_PATH
-    os.system("youtube-dl %s -o %s" % (songname, local_song))
+    # remove previous song if it exists
     if os.path.exists(SONG_PLAY_PATH):
         os.remove(SONG_PLAY_PATH)
-    if os.path.exists("%s/song" % BASE_PATH):
-        os.rename("%s/song" % BASE_PATH, SONG_PLAY_PATH)
+
+    # temporary path for some versions of youtube-dl
+    local_song = os.path.splitext(SONG_PLAY_PATH)[0]
+
+    # download and move to correct play path (for some versions only)
+    os.system("youtube-dl %s -o %s" % (songname, local_song))
+    if os.path.exists(local_song):
+        os.rename(local_song, SONG_PLAY_PATH)
     logging.info("Downloaded %s to %s/song.mkv" % (songname, BASE_PATH))
     return os.path.exists(SONG_PLAY_PATH)
 
@@ -132,9 +154,9 @@ def main():
             logging.info("Song played")
             if os.path.exists(SONG_PLAY_PATH):
                 os.remove(SONG_PLAY_PATH)
-                logging.info("Removed %s/song.mkv" % BASE_PATH)
+                logging.info("Removed %s" % SONG_PLAY_PATH)
             update_list(song)
-            logging.info("Updated %s/playlist.csv" % BASE_PATH)
+            logging.info("Updated %s" % PLAYLIST_PATH)
         else:
             logging.info("Song did not play")
 
