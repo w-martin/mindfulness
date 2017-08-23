@@ -1,7 +1,7 @@
 import os
 
 from flask import Flask, render_template, send_file, url_for, request, redirect
-from main import PLAYLIST_PATH, read_playlist_without_newlines
+from main import PLAYLIST_PATH, read_playlist_without_newlines, read_playlist_lines
 
 PLAYLIST_NAME = os.path.basename(PLAYLIST_PATH)
 
@@ -22,11 +22,20 @@ def plot_csv():
                      as_attachment=True)
 
 
+def _convert_first_href(line):
+    """ This converts the first entry on the line to an a-href """
+    x = line.split(',')
+    x[0] = '<a href=%(url)s>%(url)s</a>' % {'url': x[0]}
+    return ",".join(x)
+
+
 @app.route('/playlist')
 def print_csv():
     """ This prints out the CSV with a header added """
+    # read lines, and make the first a link
+    entries = [_convert_first_href(x) for x in read_playlist_lines()]
     header_line = "YouTube Link,Played,Song Name,Added by\n"
-    return "%s%s" % (header_line, read_playlist_without_newlines())
+    return "%s%s" % (header_line, "\n".join(entries))
 
 
 @app.route("/add-entry/", methods=["POST"])
