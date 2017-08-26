@@ -33,7 +33,12 @@ def _convert_first_href(line):
 def print_csv():
     """ This prints out the CSV with a header added """
     # read lines, and make the first a link
-    entries = [_convert_first_href(x) for x in read_playlist_lines()]
+    show_played = request.args.get('showPlayed', 'true') == 'true'
+    if show_played:
+        entries = [_convert_first_href(x) for x in read_playlist_lines()]
+    else:
+        # this will only show those that have not been played
+        entries = [_convert_first_href(x) for x in read_playlist_lines() if ',False,' in x]
     header_line = "YouTube Link,Played,Song Name,Added by\n"
     return "%s%s" % (header_line, "\n".join(entries))
 

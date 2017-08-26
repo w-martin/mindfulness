@@ -18,6 +18,18 @@
             xmlHttp.send( null );
             return xmlHttp.responseText;
         }
+        function togglePlayed()
+        {
+            localStorage.setItem('showPlayed', document.getElementById("checkShowPlayed").checked)
+            window.location.reload(false);
+        }
+        function showPlayed()
+        {
+            var showPlayedSongs = localStorage.getItem('showPlayed');
+            if(null === showPlayedSongs){showPlayedSongs = 'false';}
+            document.getElementById("checkShowPlayed").checked = showPlayedSongs === 'true';
+            return showPlayedSongs;
+        }
     </script>
 
     <meta charset="utf-8">
@@ -37,7 +49,7 @@
     </style>
 </head>
 
-<body>
+<body onload="showPlayed()">
 
 <div class="container">
     <!-- Register Modal -->
@@ -93,9 +105,11 @@
         </form>
     </div>
 
-    <div class="jumbotron" id="playlist"></div>
+    <div class="jumbotron" id="playlist">
+        <label class="checkbox-inline"><input type="checkbox" id="checkShowPlayed" value="" onchange="togglePlayed()">Show Played Songs?</label><br><br>
+    </div>
     <script>
-            d3.text("/playlist", function(data){
+            d3.text("/playlist?showPlayed=" + showPlayed(), function(data){
                 var parsedCSV = d3.csv.parseRows(data);
 
                 var container = d3.select("#playlist")
