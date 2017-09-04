@@ -38,7 +38,7 @@ def print_csv():
         entries = [_convert_first_href(x) for x in read_playlist_lines()]
     else:
         # this will only show those that have not been played
-        entries = [_convert_first_href(x) for x in read_playlist_lines() if ',False,' in x]
+        entries = [_convert_first_href(x) for x in read_playlist_lines() if ',False' in x]
     header_line = "YouTube Link,Played,Song Name,Added by\n"
     return "%s%s" % (header_line, "\n".join(entries))
 
