@@ -51,9 +51,9 @@ def get_song_name():
         if url:
             return get_title_from_youtube_url(url)
         else:
-            return 'error'
-    except:
-        return 'error'
+            return '<URL was missing>'
+    except Exception as ex:
+        return str(ex.message)
 
 
 @app.route("/add-entry/", methods=["POST"])
