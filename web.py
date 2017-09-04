@@ -2,6 +2,7 @@ import os
 
 from flask import Flask, render_template, send_file, url_for, request, redirect
 from main import PLAYLIST_PATH, read_playlist_without_newlines, read_playlist_lines, get_title_from_youtube_url
+from main import playlist_line_has_been_played
 
 PLAYLIST_NAME = os.path.basename(PLAYLIST_PATH)
 
@@ -38,7 +39,7 @@ def print_csv():
         entries = [_convert_first_href(x) for x in read_playlist_lines()]
     else:
         # this will only show those that have not been played
-        entries = [_convert_first_href(x) for x in read_playlist_lines() if ',False' in x]
+        entries = [_convert_first_href(x) for x in read_playlist_lines() if not playlist_line_has_been_played(x)]
     header_line = "YouTube Link,Played,Song Name,Added by\n"
     return "%s%s" % (header_line, "\n".join(entries))
 
