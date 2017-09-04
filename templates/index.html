@@ -7,6 +7,31 @@
     <link rel="stylesheet" type="text/css" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    <script>
+        function validateName(){
+          document.getElementById('songName').value = httpGet("/song_name?url=" + document.getElementById("ytLink").value);
+        }
+        function httpGet(theUrl)
+        {
+            var xmlHttp = new XMLHttpRequest();
+            xmlHttp.open( "GET", theUrl, false ); // false for synchronous request
+            xmlHttp.send( null );
+            return xmlHttp.responseText;
+        }
+        function togglePlayed()
+        {
+            localStorage.setItem('showPlayed', document.getElementById("checkShowPlayed").checked)
+            window.location.reload(false);
+        }
+        function showPlayed()
+        {
+            var showPlayedSongs = localStorage.getItem('showPlayed');
+            if(null === showPlayedSongs){showPlayedSongs = 'false';}
+            document.getElementById("checkShowPlayed").checked = showPlayedSongs === 'true';
+            return showPlayedSongs;
+        }
+    </script>
+
     <meta charset="utf-8">
     <style>
             table {
@@ -24,7 +49,7 @@
     </style>
 </head>
 
-<body>
+<body onload="showPlayed()">
 
 <div class="container">
     <!-- Register Modal -->
@@ -68,6 +93,8 @@
                 <input type="text" class="form-control" id="ytLink" name="ytLink"
                        placeholder="Copy and paste the youtube link e.g. https://www.youtube.com/watch?v=9X_ViIPA-Gc">
                 <br>
+                <input type='button' name='autoDesc' class="btn btn-info" value='Auto Fill Description (takes 10s!)' onclick="validateName()" />
+                <br><br>
                 <label for="songName">Description (Artist/Title):</label>
                 <input type="text" class="form-control" id="songName" name="songName"
                        placeholder="What is the Artist/Name of the song?">
@@ -78,9 +105,11 @@
         </form>
     </div>
 
-    <div class="jumbotron" id="playlist"></div>
+    <div class="jumbotron" id="playlist">
+        <label class="checkbox-inline"><input type="checkbox" id="checkShowPlayed" value="" onchange="togglePlayed()">Show Played Songs?</label><br><br>
+    </div>
     <script>
-            d3.text("/playlist", function(data){
+            d3.text("/playlist?showPlayed=" + showPlayed(), function(data){
                 var parsedCSV = d3.csv.parseRows(data);
 
                 var container = d3.select("#playlist")

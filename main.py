@@ -1,3 +1,4 @@
+import click
 import os
 import vlc
 import time
@@ -5,6 +6,8 @@ import logging
 import ast
 import datetime
 import sys
+import shutil
+import subprocess
 
 root = logging.getLogger()
 root.setLevel(logging.DEBUG)
@@ -52,16 +55,35 @@ def read_playlist_lines():
     return read_playlist_without_newlines().split('\n')
 
 
-def update_list(songname):
+def modify_playlist_lines(callback):
     # edit in place instead of re-writing the file to preserve additional information
     lines = read_playlist_lines()
 
     # re-open the file otherwise the length of the file is different (len(False) vs. len(True))
     with open(PLAYLIST_PATH, 'w') as f:
         for line in lines:
-            if songname in line:
-                line = line.replace(',False,', ',True,')
-            f.write('%s' % line)
+            try:
+                line = callback(line)
+            except Exception as ex:
+                logging.exception('Problem running callback on line: %s\n%s' % (line, ex))
+
+            # make sure there is a new line
+            line = "%s\n" % line.strip()
+
+            # write the line
+            f.write(line)
+
+
+def update_list(songname):
+    def callback(line):
+        if songname in line:
+            line = line.replace(',False,', ',True,')
+        return line
+
+    # modify the playlist using the above callback
+    modify_playlist_lines(callback)
+
+    # log that its done
     with open('%s/mindful.log' % BASE_PATH, 'a') as f:
         f.write("Played %s at %s\n" % (songname, datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y")))
 
@@ -161,5 +183,35 @@ def main():
             logging.info("Song did not play")
 
 
+def get_title_from_youtube_url(url):
+    return str(subprocess.check_output('youtube-dl --get-title %s' % url)).strip()
+
+
+def fix_playlist_song_titles():
+    def callback(line):
+        ls = ('%s,,,,' % line).split(',')  # making sure it has enough elements!
+        if not str(ls[2]).strip():
+            # no song title -- find it automatically
+            ls[2] = get_title_from_youtube_url(ls[0])
+            line = ",".join(ls[:4])
+            logging.info('Added %s for line %s' % (ls[2], line))
+        return line
+
+    logging.info('Backing up playlist to playlist.csv.bak')
+    shutil.copy(PLAYLIST_PATH, PLAYLIST_PATH + '.bak')
+
+    logging.info('Fixing the missing song titles in the CSV file')
+    modify_playlist_lines(callback)
+
+
+@click.command(context_settings=dict(ignore_unknown_options=True, allow_extra_args=True))
+@click.option('--fix-titles-and-exit', '-f', is_flag=True, help='Fix the song names and exit.')
+def mode_select(fix_titles_and_exit):
+    if fix_titles_and_exit:
+        fix_playlist_song_titles()
+    else:
+        main()
+
+
 if __name__ == '__main__':
-    main()
+    mode_select()

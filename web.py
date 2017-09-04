@@ -1,7 +1,7 @@
 import os
 
 from flask import Flask, render_template, send_file, url_for, request, redirect
-from main import PLAYLIST_PATH, read_playlist_without_newlines, read_playlist_lines
+from main import PLAYLIST_PATH, read_playlist_without_newlines, read_playlist_lines, get_title_from_youtube_url
 
 PLAYLIST_NAME = os.path.basename(PLAYLIST_PATH)
 
@@ -33,9 +33,27 @@ def _convert_first_href(line):
 def print_csv():
     """ This prints out the CSV with a header added """
     # read lines, and make the first a link
-    entries = [_convert_first_href(x) for x in read_playlist_lines()]
+    show_played = request.args.get('showPlayed', 'true') == 'true'
+    if show_played:
+        entries = [_convert_first_href(x) for x in read_playlist_lines()]
+    else:
+        # this will only show those that have not been played
+        entries = [_convert_first_href(x) for x in read_playlist_lines() if ',False' in x]
     header_line = "YouTube Link,Played,Song Name,Added by\n"
     return "%s%s" % (header_line, "\n".join(entries))
+
+
+@app.route('/song_name')
+def get_song_name():
+    """ This gets the song name from the YouTube address """
+    try:
+        url = request.args.get('url')
+        if url:
+            return get_title_from_youtube_url(url)
+        else:
+            return 'error'
+    except:
+        return 'error'
 
 
 @app.route("/add-entry/", methods=["POST"])
