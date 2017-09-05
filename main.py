@@ -33,7 +33,7 @@ def load_csv():
             elif 1 == len(parts):
                 played = False
             else:
-                played = ast.literal_eval(parts[1].replace('\n', ''))
+                played = ast.literal_eval(parts[1].strip())
             songs[parts[0].replace('\n', '')] = played
     logging.info("Loaded %d songs, of which %d have been played" % (len(songs), sum(songs.values())))
     return songs
@@ -74,10 +74,19 @@ def modify_playlist_lines(callback):
             f.write(line)
 
 
+def playlist_line_has_been_played(line):
+    try:
+        return ast.literal_eval(line.split(',')[1])
+    except:
+        return False
+
+
 def update_list(songname):
     def callback(line):
         if songname in line:
-            line = line.replace(',False,', ',True,')
+            line_elements = line.split(',')
+            line_elements[1] = 'True'
+            line = ",".join(line_elements)
         return line
 
     # modify the playlist using the above callback
