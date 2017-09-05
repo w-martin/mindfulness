@@ -194,9 +194,11 @@ def main():
 
 def get_title_from_youtube_url(url):
     try:
-        return str(subprocess.check_output('youtube-dl --get-title %s' % url, stderr=subprocess.STDOUT)).strip()
+        return str(subprocess.check_output('youtube-dl --get-title %s' % url, stderr=subprocess.STDOUT, shell=True)).strip()
     except subprocess.CalledProcessError as ex:
         return str(ex.output).strip()
+    except OSError as ex:
+        return 'youtube-dl not found: %s' % ex
 
 
 def fix_playlist_song_titles():
