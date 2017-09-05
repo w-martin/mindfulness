@@ -194,7 +194,7 @@ def main():
 
 def get_title_from_youtube_url(url):
     try:
-        return str(subprocess.check_output('youtube-dl --get-title %s' % url, stderr=subprocess.STDOUT, shell=True)).strip()
+        return str(subprocess.check_output('youtube-dl --get-title %s --no-warnings' % url, stderr=subprocess.STDOUT, shell=True)).strip()
     except subprocess.CalledProcessError as ex:
         return str(ex.output).strip()
     except OSError as ex:
