@@ -5,6 +5,7 @@ import time
 import logging
 import ast
 import datetime
+import shlex
 import sys
 import shutil
 import subprocess
@@ -21,6 +22,7 @@ root.addHandler(ch)
 BASE_PATH = '/opt/mindfulness' if os.name != 'nt' else os.getcwd()
 PLAYLIST_PATH = os.path.join(BASE_PATH, 'playlist.csv')
 SONG_PLAY_PATH = os.path.join(BASE_PATH, 'song.mkv')
+TESTING = False
 
 
 def load_csv():
@@ -121,6 +123,8 @@ def current_time():
 
 
 def play_mp3(songname, timeout=None):
+    if TESTING:
+        return True
     played = False
     p = vlc.MediaPlayer(songname)
     length = p.get_length()
@@ -155,6 +159,9 @@ def play_song():
 
 
 def download_song(songname):
+    if TESTING:
+        return True
+
     # remove previous song if it exists
     if os.path.exists(SONG_PLAY_PATH):
         os.remove(SONG_PLAY_PATH)
@@ -182,8 +189,23 @@ def main():
     if not success:
         logging.error("Download failed. Exiting.")
         sys.exit(1)
+
+    # play the mindfulness mp3
     play_mindful()
+
+    # if we've got a song -- play it
     if song is not None:
+        # notify on slack
+        try:
+            with open('%s/slack.url' % BASE_PATH, 'r') as f:
+                slack_url = f.read().strip()
+            msg = 'The song of the day is: %s' % song
+            cmd = r"""curl -X POST -H 'Content-type: application/json' --data '{"text":"%s"}' %s""" % (msg, slack_url)
+            subprocess.call(shlex.split(cmd, posix=True))
+        except (OSError, Exception) as ex:
+            logging.info("Slack notifier failed: %s" % ex)
+
+        # play
         played = play_song()
         if played:
             logging.info("Song played")
@@ -227,7 +249,13 @@ def fix_playlist_song_titles():
 
 @click.command(context_settings=dict(ignore_unknown_options=True, allow_extra_args=True))
 @click.option('--fix-titles-and-exit', '-f', is_flag=True, help='Fix the song names and exit.')
-def mode_select(fix_titles_and_exit):
+@click.option('--testing', '-t', is_flag=True, help='Test the script without downloading or playing.')
+def mode_select(fix_titles_and_exit, testing=False):
+    global TESTING
+    if testing:
+        TESTING = testing
+
+    # switch based on input options
     if fix_titles_and_exit:
         fix_playlist_song_titles()
     else:
