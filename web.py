@@ -2,7 +2,7 @@ import os
 
 from flask import Flask, render_template, send_file, url_for, request, redirect
 from main import PLAYLIST_PATH, read_playlist_without_newlines, read_playlist_lines, get_title_from_youtube_url
-from main import playlist_line_has_been_played
+from main import playlist_line_has_been_played, remove_commas_from_string
 
 PLAYLIST_NAME = os.path.basename(PLAYLIST_PATH)
 
@@ -60,9 +60,9 @@ def get_song_name():
 @app.route("/add-entry/", methods=["POST"])
 def add_entry():
     """ Adds an entry to the CSV database, and refreshes the home page to update """
-    username = request.form["name"]
-    link = request.form["ytLink"]
-    song = request.form["songName"]
+    username = remove_commas_from_string(request.form["name"])
+    link = remove_commas_from_string(request.form["ytLink"])
+    song = remove_commas_from_string(request.form["songName"])
 
     # playlist data
     f_playlist = read_playlist_without_newlines()

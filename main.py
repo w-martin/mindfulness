@@ -74,6 +74,10 @@ def modify_playlist_lines(callback):
             f.write(line)
 
 
+def remove_commas_from_string(input_string):
+    return str(input_string).translate(None, ',')
+
+
 def playlist_line_has_been_played(line):
     try:
         return ast.literal_eval(line.split(',')[1])
@@ -194,11 +198,14 @@ def main():
 
 def get_title_from_youtube_url(url):
     try:
-        return str(subprocess.check_output('youtube-dl --get-title %s --no-warnings' % url, stderr=subprocess.STDOUT, shell=True)).strip()
+        output = str(subprocess.check_output('youtube-dl --get-title %s --no-warnings' % url, stderr=subprocess.STDOUT, shell=True)).strip()
     except subprocess.CalledProcessError as ex:
-        return str(ex.output).strip()
+        output = str(ex.output).strip()
     except OSError as ex:
-        return 'youtube-dl not found: %s' % ex
+        output = 'youtube-dl not found: %s' % ex
+    except Exception as ex:
+        output = 'Something bad happened: %s' % ex
+    return remove_commas_from_string(output)
 
 
 def fix_playlist_song_titles():
