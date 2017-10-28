@@ -1,9 +1,12 @@
+import ast
 import logging
 from ConfigParser import ConfigParser
 from contextlib import contextmanager
 
 import click
 import psycopg2 as psycopg2
+
+PLAYLIST_CSV = 'playlist.csv'
 
 logging.basicConfig(level=logging.INFO)
 
@@ -28,6 +31,7 @@ def connect_to_database():
 
     # close the connection
     cur.close()
+    conn.commit()
     conn.close()
     logging.info('Database connection closed')
 
@@ -44,16 +48,34 @@ def get_songs_size(db):
     return int(result[0])
 
 
-@click.option('--playlist', '-p', default=None, type=str, help='Playlist file name', required=True)
-def main(playlist=None):
+def get_userid(db, user, add_user=True):
+    if len(user) == 0:
+        user = "Unknown"
+    if add_user:
+        db.execute("insert into users (name) select '%s' on conflict do nothing;" % user)
+    db.execute("select user_id from users where name='%s';" % user)
+    result = db.fetchone()
+    user_id = int(result[0])
+    return user_id
+
+
+def add_song(db, url, played, title, user_id):
+    db.execute("insert into songs (title,url,user_id,played) select '%s','%s','%d','%s' on conflict do nothing;" %
+               (title, url, user_id, "t" if ast.literal_eval(played) else "f"))
+    result = '1' == db.statusmessage.split()[-1]
+    return result
+
+
+@click.option('--playlist', '-p', default=PLAYLIST_CSV, type=str, help='Playlist file name', required=True)
+def main(playlist=PLAYLIST_CSV):
     songs = read_playlist(playlist)
     with connect_to_database() as db:
         db_size_before = get_songs_size(db)
-        # for url, played, title, user in songs:
-        #     user_id = get_userid(db, user)
-        #     added = add_song(db, url, played, title, user_id)
-        #     logging.info("%s %s by %s", "Added " if added else "Did not add ",
-        #                  title, user)
+        for url, played, title, user in songs:
+            user_id = get_userid(db, user)
+            added = add_song(db, url, played, title, user_id)
+            logging.info("%s %s by %s", "Added " if added else "Did not add ",
+                         title, user)
         db_size_after = get_songs_size(db)
 
     no_songs_added = db_size_after - db_size_before
