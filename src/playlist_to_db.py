@@ -2,7 +2,7 @@ import logging
 
 import click
 
-from database import read_playlist, connect_to_database, get_songs_size, get_userid, add_song
+from src.database import read_playlist, connect_to_database, get_songs_size, get_userid, add_song
 
 PLAYLIST_CSV = 'playlist.csv'
 
