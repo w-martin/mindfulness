@@ -42,7 +42,7 @@ def load_csv():
 
 
 def read_playlist_without_newlines():
-    """ This gets the CSV data, and handles the non-existance of the file """
+    """ This gets the CSV data, and handles the non-existence of the file """
     try:
         # open read/write, so that we can make sure no new lines are created
         with open(PLAYLIST_PATH, 'r') as f:

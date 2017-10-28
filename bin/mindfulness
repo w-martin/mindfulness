@@ -1,2 +1,2 @@
 #!/bin/sh
-/usr/bin/python /opt/mindfulness/main.py "$@"
+/usr/bin/python /opt/mindfulness/src/main.py "$@"
