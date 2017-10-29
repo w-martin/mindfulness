@@ -1,10 +1,7 @@
-import os
+from flask import Flask, render_template, url_for, request, redirect
 
-from flask import Flask, render_template, send_file, url_for, request, redirect
-from main import PLAYLIST_PATH, read_playlist_without_newlines, read_playlist_lines, get_title_from_youtube_url
-from main import playlist_line_has_been_played, remove_commas_from_string
-
-PLAYLIST_NAME = os.path.basename(PLAYLIST_PATH)
+import database
+from fix_playlist_titles import get_title_from_youtube_url, remove_commas_from_string
 
 app = Flask(__name__)
 
@@ -12,15 +9,6 @@ app = Flask(__name__)
 @app.route("/")
 def main():
     return render_template('index.html')
-
-
-@app.route('/playlist.csv')
-def plot_csv():
-    """ This downloads the original file as a CSV """
-    return send_file(PLAYLIST_PATH,
-                     mimetype='text/csv',
-                     attachment_filename=PLAYLIST_NAME,
-                     as_attachment=True)
 
 
 def _convert_first_href(line):
@@ -36,10 +24,10 @@ def print_csv():
     # read lines, and make the first a link
     show_played = request.args.get('showPlayed', 'true') == 'true'
     if show_played:
-        entries = [_convert_first_href(x) for x in read_playlist_lines()]
+        entries = [_convert_first_href(x) for x in database.get_songs(include_played=True)]
     else:
         # this will only show those that have not been played
-        entries = [_convert_first_href(x) for x in read_playlist_lines() if not playlist_line_has_been_played(x)]
+        entries = [_convert_first_href(x) for x in database.get_songs(include_played=False)]
     header_line = "YouTube Link,Played,Song Name,Added by\n"
     return "%s%s" % (header_line, "\n".join(entries))
 
@@ -64,19 +52,9 @@ def add_entry():
     link = remove_commas_from_string(request.form["ytLink"])
     song = remove_commas_from_string(request.form["songName"])
 
-    # playlist data
-    f_playlist = read_playlist_without_newlines()
-
-    # open read/write, so that we can make sure no new lines are created
-    with open(PLAYLIST_PATH, 'w') as f:
-        # the new line to be written
-        new_line = ",".join([link, str(False), song, username])
-
-        # write out the file with a new line (if it existed, else just the new line)
-        if f_playlist:
-            f.write("%s\n%s" % (f_playlist, new_line))
-        else:
-            f.write("%s" % new_line)
+    with database.connect_to_database() as db:
+        user_id = database.get_userid(database, username)
+        database.add_song(db, link, False, song, user_id)
 
     return redirect(url_for('main'))
 

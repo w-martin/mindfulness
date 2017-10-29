@@ -37,30 +37,41 @@ def read_playlist(playlist):
 
 
 class Song(object):
-    def __init__(self, song_id, title, url, username):
+    def __init__(self, song_id, title, url, username, played):
         self.song_id = song_id
         self.title = title
         self.url = url
         self.username = username
+        self.played = played
 
     def __str__(self):
-        return "('%s' chosen by %s)" % (self.title, self.username)
+        return "%s,%s,%s,%s" % (self.url, str(self.played), self.title, self.username)
 
     def __repr__(self):
-        return self.__str__()
+        return "('%s' chosen by %s)" % (self.title, self.username)
 
 
-def load_unplayed():
+def load_songs(include_played=False, include_out_of_office=False):
+    office_conditional = "and songs.user_id in (select users.user_id from users where users.in_office=True)" \
+        if not include_out_of_office else ""
+    played_conditional = "and songs.song_id not in (select played.song_id from played)" \
+        if not include_played else ""
+
+    is_played_case = "case when played.song_id is null then false else true end as is_played"
+    is_played_join = "left outer join played on played.song_id=songs.song_id"
+
     with connect_to_database() as db:
-        query_str = "select songs.song_id,songs.title,songs.url,users.name " \
+        query_str = "select songs.song_id,songs.title,songs.url,users.name,%s " \
                     "from songs,users " \
-                    "where songs.user_id=users.user_id " \
-                    "and songs.user_id in (select users.user_id from users where users.in_office=True) " \
-                    "and songs.song_id not in (select played.song_id from played);"
+                    " %s " \
+                    " where songs.user_id=users.user_id " \
+                    " %s " \
+                    " %s ;" %\
+                    (is_played_case, is_played_join, office_conditional, played_conditional)
         db.execute(query_str)
         results = db.fetchall()
-    unplayed = [Song(r[0], r[1], r[2], r[3]) for r in results]
-    return unplayed
+    songs = [Song(r[0], r[1], r[2], r[3], r[4]) for r in results]
+    return songs
 
 
 def get_songs_size(db):
