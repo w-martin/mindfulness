@@ -1,23 +1,16 @@
 import ast
 import logging
-from ConfigParser import ConfigParser
 from contextlib import contextmanager
 
 import psycopg2 as psycopg2
 
-
-def read_database_config():
-    parser = ConfigParser()
-    parser.read('database/config.ini')
-    database_params = {param[0]: param[1] for param in parser.items('postgresql')}
-    logging.info("Loaded %d database parameters", len(database_params))
-    return database_params
+from util import read_config
 
 
 @contextmanager
 def connect_to_database():
     # connect
-    database_params = read_database_config()
+    database_params = read_config('postgresql')
     logging.info('Connecting to the mindful database')
     conn = psycopg2.connect(**database_params)
 
@@ -60,10 +53,10 @@ class Song(object):
 def load_unplayed():
     with connect_to_database() as db:
         query_str = "select songs.song_id,songs.title,songs.url,users.name " \
-                  "from songs,users " \
-                  "where songs.user_id=users.user_id " \
-                  "and songs.user_id in (select users.user_id from users where users.in_office=True) " \
-                  "and songs.song_id not in (select played.song_id from played);"
+                    "from songs,users " \
+                    "where songs.user_id=users.user_id " \
+                    "and songs.user_id in (select users.user_id from users where users.in_office=True) " \
+                    "and songs.song_id not in (select played.song_id from played);"
         db.execute(query_str)
         results = db.fetchall()
     unplayed = [Song(r[0], r[1], r[2], r[3]) for r in results]
