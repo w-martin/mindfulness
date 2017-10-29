@@ -1,14 +1,20 @@
+import os
+
 from flask import Flask, render_template, url_for, request, redirect
 
 import database
+import util
 from fix_playlist_titles import get_title_from_youtube_url, remove_commas_from_string
 
-app = Flask(__name__)
+TEMPLATE_DIR = os.path.join(util.BASE_PATH, "templates")
+INDEX_HTML = 'index.html'
+
+app = Flask(__name__, template_folder=TEMPLATE_DIR)
 
 
 @app.route("/")
 def main():
-    return render_template('index.html')
+    return render_template(INDEX_HTML)
 
 
 def _convert_first_href(line):
@@ -23,11 +29,8 @@ def print_csv():
     """ This prints out the CSV with a header added """
     # read lines, and make the first a link
     show_played = request.args.get('showPlayed', 'true') == 'true'
-    if show_played:
-        entries = [_convert_first_href(x) for x in database.get_songs(include_played=True)]
-    else:
-        # this will only show those that have not been played
-        entries = [_convert_first_href(x) for x in database.get_songs(include_played=False)]
+    songs = database.load_songs(include_played=show_played)
+    entries = [_convert_first_href(str(x)) for x in songs]
     header_line = "YouTube Link,Played,Song Name,Added by\n"
     return "%s%s" % (header_line, "\n".join(entries))
 

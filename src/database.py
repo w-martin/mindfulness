@@ -62,7 +62,7 @@ def load_songs(include_played=False, include_out_of_office=False):
 
     with connect_to_database() as db:
         query_str = "select songs.song_id,songs.title,songs.url,users.name,%s " \
-                    "from songs,users " \
+                    "from users,songs " \
                     " %s " \
                     " where songs.user_id=users.user_id " \
                     " %s " \
