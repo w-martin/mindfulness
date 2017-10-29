@@ -23,11 +23,23 @@
             localStorage.setItem('showPlayed', document.getElementById("checkShowPlayed").checked)
             window.location.reload(false);
         }
+        function toggleOutOfOffice()
+        {
+            localStorage.setItem('showOutOfOffice', document.getElementById("checkShowOutOfOffice").checked)
+            window.location.reload(false);
+        }
         function showPlayed()
         {
             var showPlayedSongs = localStorage.getItem('showPlayed');
             if(null === showPlayedSongs){showPlayedSongs = 'false';}
             document.getElementById("checkShowPlayed").checked = showPlayedSongs === 'true';
+            return showPlayedSongs;
+        }
+        function showOutOfOffice()
+        {
+            var showPlayedSongs = localStorage.getItem('showOutOfOffice');
+            if(null === showPlayedSongs){showPlayedSongs = 'false';}
+            document.getElementById("checkShowOutOfOffice").checked = showPlayedSongs === 'true';
             return showPlayedSongs;
         }
     </script>
@@ -111,10 +123,11 @@
     </div>
 
     <div class="jumbotron" id="playlist">
-        <label class="checkbox-inline"><input type="checkbox" id="checkShowPlayed" value="" onchange="togglePlayed()">Show Played Songs?</label><br><br>
+        <label class="checkbox-inline"><input type="checkbox" id="checkShowPlayed" value="" onchange="togglePlayed()">Show Played Songs?</label>
+        <label class="checkbox-inline"><input type="checkbox" id="checkShowOutOfOffice" value="" onchange="toggleOutOfOffice()">Show Out Of Office Songs?</label><br><br>
     </div>
     <script>
-            d3.text("/playlist?showPlayed=" + showPlayed(), function(data){
+            d3.text("/playlist?showPlayed=" + showPlayed() + "&showOutOfOffice=" + showOutOfOffice(), function(data){
                 var parsedCSV = d3.csv.parseRows(data);
 
                 var container = d3.select("#playlist")

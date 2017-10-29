@@ -29,7 +29,8 @@ def print_csv():
     """ This prints out the CSV with a header added """
     # read lines, and make the first a link
     show_played = request.args.get('showPlayed', 'true') == 'true'
-    songs = database.load_songs(include_played=show_played)
+    show_out_of_office = request.args.get('showOutOfOffice', 'true') == 'true'
+    songs = database.load_songs(include_played=show_played, include_out_of_office=show_out_of_office)
     entries = [_convert_first_href(str(x)) for x in songs]
     header_line = "YouTube Link,Played,Song Name,Added by\n"
     return "%s%s" % (header_line, "\n".join(entries))
