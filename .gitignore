@@ -6,3 +6,6 @@
 playlist.csv
 mindful.log
 slack.url
+*.webm
+*.pyc
+*.bak
