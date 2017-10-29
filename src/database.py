@@ -66,7 +66,7 @@ def load_songs(include_played=False, include_out_of_office=False):
                     " %s " \
                     " where songs.user_id=users.user_id " \
                     " %s " \
-                    " %s ;" %\
+                    " %s ;" % \
                     (is_played_case, is_played_join, office_conditional, played_conditional)
         db.execute(query_str)
         results = db.fetchall()
@@ -91,8 +91,23 @@ def get_userid(db, user, add_user=True):
     return user_id
 
 
-def add_song(db, url, played, title, user_id):
-    db.execute("insert into songs (title,url,user_id,played) select '%s','%s','%d','%s' on conflict do nothing;" %
-               (title, url, user_id, "t" if ast.literal_eval(played) else "f"))
+def get_users():
+    with connect_to_database() as db:
+        db.execute("select name,in_office from users")
+        results = db.fetchall()
+    return results
+
+
+def set_user_in_office(username=None, in_office=True):
+    if username is None:
+        return
+    with connect_to_database() as db:
+        db.execute("update users set in_office=%s where name='%s';" % (str(in_office), username))
+
+
+def add_song(db, url, title, user_id):
+    query_str = "insert into songs (title,url,user_id) select '%s','%s','%d' on conflict do nothing;" % (
+        title, url, user_id)
+    db.execute(query_str)
     result = '1' == db.statusmessage.split()[-1]
     return result

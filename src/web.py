@@ -57,8 +57,8 @@ def add_entry():
     song = remove_commas_from_string(request.form["songName"])
 
     with database.connect_to_database() as db:
-        user_id = database.get_userid(database, username)
-        database.add_song(db, link, False, song, user_id)
+        user_id = database.get_userid(db, username)
+        database.add_song(db, link, song, user_id)
 
     return redirect(url_for('main'))
 
