@@ -31,10 +31,42 @@ def connect_to_database():
     logging.info('Database connection closed')
 
 
+def mark_song_played(song_id):
+    with connect_to_database() as db:
+        db.execute("update songs set played=True where song_id='%d';" % song_id)
+
+
 def read_playlist(playlist):
     with open(playlist) as f:
         for line in f.readlines():
             yield line.strip().split(',')
+
+
+class Song(object):
+    def __init__(self, song_id, title, url, username):
+        self.song_id = song_id
+        self.title = title
+        self.url = url
+        self.username = username
+
+    def __str__(self):
+        return "('%s' chosen by %s)" % (self.title, self.username)
+
+    def __repr__(self):
+        return self.__str__()
+
+
+def load_unplayed():
+    with connect_to_database() as db:
+        query_str = "select songs.song_id,songs.title,songs.url,users.name " \
+                  "from songs,users " \
+                  "where songs.user_id=users.user_id " \
+                  "and songs.user_id in (select users.user_id from users where users.in_office=True) " \
+                  "and songs.song_id not in (select played.song_id from played);"
+        db.execute(query_str)
+        results = db.fetchall()
+    unplayed = [Song(r[0], r[1], r[2], r[3]) for r in results]
+    return unplayed
 
 
 def get_songs_size(db):

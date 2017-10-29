@@ -1,14 +1,18 @@
-import click
-import os
-import vlc
-import time
-import logging
 import ast
 import datetime
+import logging
+import os
+import random
 import shlex
-import sys
 import shutil
 import subprocess
+import sys
+import time
+
+import click
+import vlc
+
+from database import mark_song_played, load_unplayed
 
 root = logging.getLogger()
 root.setLevel(logging.DEBUG)
@@ -87,28 +91,11 @@ def playlist_line_has_been_played(line):
         return False
 
 
-def update_list(songname):
-    def callback(line):
-        if songname in line:
-            line_elements = line.split(',')
-            line_elements[1] = 'True'
-            line = ",".join(line_elements)
-        return line
-
-    # modify the playlist using the above callback
-    modify_playlist_lines(callback)
-
+def update_list(song):
+    mark_song_played(song.song_id)
     # log that its done
     with open('%s/mindful.log' % BASE_PATH, 'a') as f:
-        f.write("Played %s at %s\n" % (songname, datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y")))
-
-
-def load_playlist():
-    try:
-        return load_csv()
-    except (IOError, OSError):
-        # file could not be found or opened
-        return dict()
+        f.write("Played %s at %s\n" % (song.title, datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y")))
 
 
 def play_mindful():
@@ -143,22 +130,17 @@ def play_mp3(songname, timeout=None):
     return played
 
 
-def select_song(playlist_dict):
+def select_song(songs):
     selected = None
-    import random
-    if False in playlist_dict.values():
-        while selected is None:
-            song = random.choice(list(playlist_dict.keys()))
-            if not playlist_dict[song]:
-                selected = song
-    return selected
+    song = random.choice(songs)
+    return song
 
 
 def play_song():
     return play_mp3(SONG_PLAY_PATH, 60 * 10)
 
 
-def download_song(songname):
+def download_song(url):
     if TESTING:
         return True
 
@@ -170,16 +152,16 @@ def download_song(songname):
     local_song = os.path.splitext(SONG_PLAY_PATH)[0]
 
     # download and move to correct play path (for some versions only)
-    os.system("youtube-dl %s -o %s" % (songname, local_song))
+    os.system("youtube-dl %s -o %s" % (url, local_song))
     if os.path.exists(local_song):
         os.rename(local_song, SONG_PLAY_PATH)
-    logging.info("Downloaded %s to %s/song.mkv" % (songname, BASE_PATH))
+    logging.info("Downloaded %s to %s/song.mkv" % (url, BASE_PATH))
     return os.path.exists(SONG_PLAY_PATH)
 
 
 def main():
-    playlist_dict = load_playlist()
-    song = select_song(playlist_dict)
+    unplayed = load_unplayed()
+    song = select_song(unplayed)
     success = False
     if song is not None:
         success = download_song(song)
@@ -220,7 +202,8 @@ def main():
 
 def get_title_from_youtube_url(url):
     try:
-        output = str(subprocess.check_output('youtube-dl --get-title %s --no-warnings' % url, stderr=subprocess.STDOUT, shell=True)).strip()
+        output = str(subprocess.check_output('youtube-dl --get-title %s --no-warnings' % url, stderr=subprocess.STDOUT,
+                                             shell=True)).strip()
     except subprocess.CalledProcessError as ex:
         output = str(ex.output).strip()
     except OSError as ex:
