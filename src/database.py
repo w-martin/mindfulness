@@ -37,30 +37,41 @@ def read_playlist(playlist):
 
 
 class Song(object):
-    def __init__(self, song_id, title, url, username):
+    def __init__(self, song_id, title, url, username, played):
         self.song_id = song_id
         self.title = title
         self.url = url
         self.username = username
+        self.played = played
 
     def __str__(self):
-        return "('%s' chosen by %s)" % (self.title, self.username)
+        return "%s,%s,%s,%s" % (self.url, str(self.played), self.title, self.username)
 
     def __repr__(self):
-        return self.__str__()
+        return "('%s' chosen by %s)" % (self.title, self.username)
 
 
-def load_unplayed():
+def load_songs(include_played=False, include_out_of_office=False):
+    office_conditional = "and songs.user_id in (select users.user_id from users where users.in_office=True)" \
+        if not include_out_of_office else ""
+    played_conditional = "and songs.song_id not in (select played.song_id from played)" \
+        if not include_played else ""
+
+    is_played_case = "case when played.song_id is null then false else true end as is_played"
+    is_played_join = "left outer join played on played.song_id=songs.song_id"
+
     with connect_to_database() as db:
-        query_str = "select songs.song_id,songs.title,songs.url,users.name " \
-                    "from songs,users " \
-                    "where songs.user_id=users.user_id " \
-                    "and songs.user_id in (select users.user_id from users where users.in_office=True) " \
-                    "and songs.song_id not in (select played.song_id from played);"
+        query_str = "select songs.song_id,songs.title,songs.url,users.name,%s " \
+                    "from users,songs " \
+                    " %s " \
+                    " where songs.user_id=users.user_id " \
+                    " %s " \
+                    " %s ;" % \
+                    (is_played_case, is_played_join, office_conditional, played_conditional)
         db.execute(query_str)
         results = db.fetchall()
-    unplayed = [Song(r[0], r[1], r[2], r[3]) for r in results]
-    return unplayed
+    songs = [Song(r[0], r[1], r[2], r[3], r[4]) for r in results]
+    return songs
 
 
 def get_songs_size(db):
@@ -80,8 +91,23 @@ def get_userid(db, user, add_user=True):
     return user_id
 
 
-def add_song(db, url, played, title, user_id):
-    db.execute("insert into songs (title,url,user_id,played) select '%s','%s','%d','%s' on conflict do nothing;" %
-               (title, url, user_id, "t" if ast.literal_eval(played) else "f"))
+def get_users():
+    with connect_to_database() as db:
+        db.execute("select name,in_office from users")
+        results = db.fetchall()
+    return results
+
+
+def set_user_in_office(username=None, in_office=True):
+    if username is None:
+        return
+    with connect_to_database() as db:
+        db.execute("update users set in_office=%s where name='%s';" % (str(in_office), username))
+
+
+def add_song(db, url, title, user_id):
+    query_str = "insert into songs (title,url,user_id) select '%s','%s','%d' on conflict do nothing;" % (
+        title, url, user_id)
+    db.execute(query_str)
     result = '1' == db.statusmessage.split()[-1]
     return result

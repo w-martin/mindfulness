@@ -22,7 +22,6 @@ formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(messag
 ch.setFormatter(formatter)
 root.addHandler(ch)
 
-BASE_PATH = util.read_config('general')['path']
 PLAYLIST_PATH = os.path.join(BASE_PATH, util.read_config('general')['playlist'])
 SONG_PLAY_PATH = os.path.join(BASE_PATH, util.read_config('general')['song'])
 TESTING = util.read_config('testing')['song'] == 'True'
