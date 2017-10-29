@@ -14,6 +14,7 @@ import vlc
 
 from database import mark_song_played, load_unplayed
 
+
 root = logging.getLogger()
 root.setLevel(logging.DEBUG)
 
@@ -25,8 +26,11 @@ root.addHandler(ch)
 
 BASE_PATH = '/opt/mindfulness' if os.name != 'nt' else os.getcwd()
 PLAYLIST_PATH = os.path.join(BASE_PATH, 'playlist.csv')
-SONG_PLAY_PATH = os.path.join(BASE_PATH, 'song.mkv')
+SONG_PLAY_PATH = os.path.join(BASE_PATH, 'song.webm')
 TESTING = False
+SKIP_MINDFUL = False
+TIMEOUT_MINDFUL = 66
+TIMEOUT_SONG = 10
 
 
 def load_csv():
@@ -99,9 +103,11 @@ def update_list(song):
 
 
 def play_mindful():
+    if SKIP_MINDFUL:
+        return
     songname = "%s/mindful.mp3" % BASE_PATH
     logging.info("Playing %s" % songname)
-    play_mp3(songname, 66)
+    play_mp3(songname, TIMEOUT_MINDFUL)
 
 
 def current_time():
@@ -120,9 +126,9 @@ def play_mp3(songname, timeout=None):
     start_time = current_time()
     logging.info("Playing %s for %d seconds" % (songname, length))
     p.play()
-    time.sleep(10)
+    time.sleep(5)
     while length > (current_time() - start_time):
-        time.sleep(5)
+        time.sleep(2)
         played = True
     logging.info("%d <= %d - stopping" % (length, (current_time() - start_time)))
     if timeout:
@@ -137,7 +143,7 @@ def select_song(songs):
 
 
 def play_song():
-    return play_mp3(SONG_PLAY_PATH, 60 * 10)
+    return play_mp3(SONG_PLAY_PATH, TIMEOUT_SONG)
 
 
 def download_song(url):
@@ -164,7 +170,7 @@ def main():
     song = select_song(unplayed)
     success = False
     if song is not None:
-        success = download_song(song)
+        success = download_song(song.url)
     if not song:
         logging.error("No song. Exiting.")
         sys.exit(1)
@@ -179,9 +185,8 @@ def main():
     if song is not None:
         # notify on slack
         try:
-            with open('%s/slack.url' % BASE_PATH, 'r') as f:
-                slack_url = f.read().strip()
-            msg = 'The song of the day is: %s' % song
+            slack_url = get_slack_url()
+            msg = "The song of the day is: '%s' chosen by %s" % (song.title, song.username)
             cmd = r"""curl -X POST -H 'Content-type: application/json' --data '{"text":"%s"}' %s""" % (msg, slack_url)
             subprocess.call(shlex.split(cmd, posix=True))
         except (OSError, Exception) as ex:
@@ -198,6 +203,12 @@ def main():
             logging.info("Updated %s" % PLAYLIST_PATH)
         else:
             logging.info("Song did not play")
+
+
+def get_slack_url():
+    with open('%s/slack.url' % BASE_PATH, 'r') as f:
+        slack_url = f.read().strip()
+    return slack_url
 
 
 def get_title_from_youtube_url(url):
@@ -233,10 +244,15 @@ def fix_playlist_song_titles():
 @click.command(context_settings=dict(ignore_unknown_options=True, allow_extra_args=True))
 @click.option('--fix-titles-and-exit', '-f', is_flag=True, help='Fix the song names and exit.')
 @click.option('--testing', '-t', is_flag=True, help='Test the script without downloading or playing.')
-def mode_select(fix_titles_and_exit, testing=False):
+@click.option('--skip-mindful', '-s', is_flag=True, help='Test the script without playing mindfulnes.')
+def mode_select(fix_titles_and_exit, testing=False, skip_mindful=False):
     global TESTING
     if testing:
         TESTING = testing
+
+    global SKIP_MINDFUL
+    if skip_mindful:
+        SKIP_MINDFUL = skip_mindful
 
     # switch based on input options
     if fix_titles_and_exit:

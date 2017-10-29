@@ -33,7 +33,8 @@ def connect_to_database():
 
 def mark_song_played(song_id):
     with connect_to_database() as db:
-        db.execute("update songs set played=True where song_id='%d';" % song_id)
+        db.execute("insert into played (song_id,date) select %d,now();" % song_id)
+        logging.info("Marked song with id %d as played" % song_id)
 
 
 def read_playlist(playlist):
