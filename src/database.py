@@ -1,4 +1,3 @@
-import ast
 import logging
 from contextlib import contextmanager
 
@@ -111,3 +110,16 @@ def add_song(db, url, title, user_id):
     db.execute(query_str)
     result = '1' == db.statusmessage.split()[-1]
     return result
+
+
+def get_song_id(db, url):
+    query_str = "select song_id from songs where url='%s';" % url
+    db.execute(query_str)
+    result = int(db.fetchone()[0])
+    return result
+
+
+def set_song_played(db, url):
+    song_id = get_song_id(db, url)
+    query_str = "insert into played (song_id,date) select '%d',now() on conflict do nothing;" % song_id
+    db.execute(query_str)

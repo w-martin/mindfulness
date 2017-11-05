@@ -1,8 +1,13 @@
+import glob
 import logging
 import os
 from ConfigParser import ConfigParser
 
-CONFIG_INI = os.path.join(os.pardir, 'config.ini')
+try:
+    CONFIG_INI = os.path.abspath(glob.glob('mindfulness_config.ini')[0])
+except:
+    # try default path
+    CONFIG_INI = '/opt/mindfulness/mindfulness_config.ini'
 
 
 def read_config(section):

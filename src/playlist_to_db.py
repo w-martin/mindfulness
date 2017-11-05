@@ -2,7 +2,7 @@ import logging
 
 import click
 
-from src.database import read_playlist, connect_to_database, get_songs_size, get_userid, add_song
+from database import read_playlist, connect_to_database, get_songs_size, get_userid, add_song, set_song_played
 
 PLAYLIST_CSV = 'playlist.csv'
 
@@ -16,9 +16,13 @@ def main(playlist=PLAYLIST_CSV):
         db_size_before = get_songs_size(db)
         for url, played, title, user in songs:
             user_id = get_userid(db, user)
-            added = add_song(db, url, played, title, user_id)
+            title = title.replace("'", '')
+            added = add_song(db, url, title, user_id)
             logging.info("%s %s by %s", "Added " if added else "Did not add ",
                          title, user)
+            if played:
+                set_song_played(db, url)
+                logging.info("Set song played: %s", title)
         db_size_after = get_songs_size(db)
 
     no_songs_added = db_size_after - db_size_before
