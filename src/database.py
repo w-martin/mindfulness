@@ -51,22 +51,26 @@ class Song(object):
 
 
 def load_songs(include_played=False, include_out_of_office=False):
-    office_conditional = "and songs.user_id in (select users.user_id from users where users.in_office=True)" \
-        if not include_out_of_office else ""
-    played_conditional = "and songs.song_id not in (select played.song_id from played)" \
-        if not include_played else ""
+    office_join = "left outer join out_of_office o \n on o.user_id=songs.user_id"
+    office_conditional = "and songs.user_id not in (select o.user_id from out_of_office o " \
+                         "where now() between o.from and o.to )" if not include_out_of_office else ""
 
     is_played_case = "case when played.song_id is null then false else true end as is_played"
-    is_played_join = "left outer join played on played.song_id=songs.song_id"
+    is_played_join = "left outer join played \n on played.song_id=songs.song_id"
+    is_played_conditional = "and songs.song_id not in (select played.song_id from played)" \
+        if not include_played else ""
 
     with connect_to_database() as db:
-        query_str = "select songs.song_id,songs.title,songs.url,users.name,%s " \
-                    "from users,songs " \
-                    " %s " \
-                    " where songs.user_id=users.user_id " \
-                    " %s " \
-                    " %s ;" % \
-                    (is_played_case, is_played_join, office_conditional, played_conditional)
+        query_str = "select songs.song_id,songs.title,songs.url,users.name,{is_played_case} \n" \
+                    "from users,songs \n" \
+                    " {is_played_join} \n" \
+                    " {office_join} \n" \
+                    " where songs.user_id=users.user_id \n" \
+                    " {office_conditional} \n" \
+                    " {is_played_conditional} \n " \
+                    ";".format(is_played_case=is_played_case, is_played_join=is_played_join,
+                               office_join=office_join, office_conditional=office_conditional,
+                               is_played_conditional=is_played_conditional)
         db.execute(query_str)
         results = db.fetchall()
     songs = [Song(r[0], r[1], r[2], r[3], r[4]) for r in results]
