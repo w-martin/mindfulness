@@ -1,2 +1,2 @@
 #!/bin/sh
-psql -U postgres --password -h localhost < ../templates/database.sql
+psql -U postgres --password -h localhost < /opt/mindfulness/templates/database.sql

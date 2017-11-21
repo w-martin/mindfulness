@@ -1,3 +1,4 @@
+import ast
 import logging
 
 import click
@@ -15,6 +16,8 @@ def main(playlist=PLAYLIST_CSV):
     with connect_to_database() as db:
         db_size_before = get_songs_size(db)
         for url, played, title, user in songs:
+            played = ast.literal_eval(played)
+            assert type(played) is bool
             user_id = get_userid(db, user)
             title = title.replace("'", '')
             added = add_song(db, url, title, user_id)

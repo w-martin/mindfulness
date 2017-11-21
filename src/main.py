@@ -1,4 +1,5 @@
 import datetime
+import glob
 import logging
 import os
 import random
@@ -10,8 +11,9 @@ import time
 import click
 import vlc
 
-from database import mark_song_played, load_unplayed
+import database
 import util
+from util import BASE_PATH
 
 root = logging.getLogger()
 root.setLevel(logging.DEBUG)
@@ -31,7 +33,7 @@ TIMEOUT_SONG = int(util.read_config('timeout')['song'])
 
 
 def update_list(song):
-    mark_song_played(song.song_id)
+    database.mark_song_played(song.song_id)
     # log that its done
     with open('%s/mindful.log' % BASE_PATH, 'a') as f:
         f.write("Played %s at %s\n" % (song.title, datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y")))
@@ -80,7 +82,7 @@ def select_song(songs):
 
 
 def play_song():
-    return play_mp3(SONG_PLAY_PATH, TIMEOUT_SONG)
+    return play_mp3(get_song_path(), TIMEOUT_SONG)
 
 
 def download_song(url):
@@ -88,33 +90,38 @@ def download_song(url):
         return True
 
     # remove previous song if it exists
-    if os.path.exists(SONG_PLAY_PATH):
-        os.remove(SONG_PLAY_PATH)
-
-    # temporary path for some versions of youtube-dl
-    local_song = os.path.splitext(SONG_PLAY_PATH)[0]
+    if os.path.exists(get_song_path()):
+        os.remove(get_song_path())
 
     # download and move to correct play path (for some versions only)
-    os.system("youtube-dl %s -o %s" % (url, local_song))
-    if os.path.exists(local_song):
-        os.rename(local_song, SONG_PLAY_PATH)
-    logging.info("Downloaded %s to %s/song.mkv" % (url, BASE_PATH))
-    return os.path.exists(SONG_PLAY_PATH)
+    os.system("youtube-dl %s -o %s" % (url, "song.mkv"))
+    song_path = get_song_path()
+    logging.info("Downloaded %s to %s" % (url, song_path))
+    return os.path.exists(get_song_path())
+
+
+def get_song_path():
+    potential_song_path = os.path.join(BASE_PATH, SONG_PLAY_PATH)
+    try:
+        return glob.glob(potential_song_path)[0]
+    except IndexError:
+        # song didn't exist
+        return potential_song_path
 
 
 @click.command(context_settings=dict(ignore_unknown_options=True, allow_extra_args=True))
 @click.option('--testing', '-t', is_flag=True, help='Test the script without downloading or playing.')
 @click.option('--skip-mindful', '-s', is_flag=True, help='Test the script without playing mindfulnes.')
 def main(testing=False, skip_mindful=False):
-    global TESTING
-    if testing:
-        TESTING = testing
 
-    global SKIP_MINDFUL
+    if testing:
+        global TESTING
+        TESTING = testing
     if skip_mindful:
+        global SKIP_MINDFUL
         SKIP_MINDFUL = skip_mindful
 
-    unplayed = load_unplayed()
+    unplayed = database.load_songs(include_played=False, include_out_of_office=False)
     song = select_song(unplayed)
     success = False
     if song is not None:
@@ -148,7 +155,7 @@ def main(testing=False, skip_mindful=False):
                 os.remove(SONG_PLAY_PATH)
                 logging.info("Removed %s" % SONG_PLAY_PATH)
             update_list(song)
-            logging.info("Updated %s" % PLAYLIST_PATH)
+            logging.info("Updated database")
         else:
             logging.info("Song did not play")
 
