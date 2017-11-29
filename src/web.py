@@ -1,5 +1,7 @@
 import os
 
+import click
+import datetime
 from flask import Flask, render_template, url_for, request, redirect
 
 import database
@@ -12,9 +14,11 @@ INDEX_HTML = 'index.html'
 app = Flask(__name__, template_folder=TEMPLATE_DIR)
 
 
+@click.command()
+@click.option('--christmas', default=False)
 @app.route("/")
-def main():
-    return render_template(INDEX_HTML)
+def main(christmas):
+    return render_template(INDEX_HTML, christmas_mode=christmas)
 
 
 def _convert_first_href(line):
@@ -56,9 +60,14 @@ def add_entry():
     link = remove_commas_from_string(request.form["ytLink"])
     song = remove_commas_from_string(request.form["songName"])
 
+    if request.christmas_mode and request.form["christmasSong"]:
+        daterange = '[01/12/{year}, 31/12/{year}]'.format(year=datetime.date.today().year)
+    else:
+        daterange = None
+
     with database.connect_to_database() as db:
         user_id = database.get_userid(db, username)
-        database.add_song(db, link, song, user_id)
+        database.add_song(db, link, song, user_id, daterange=daterange)
 
     return redirect(url_for('main'))
 

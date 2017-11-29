@@ -108,7 +108,7 @@ def set_user_in_office(username=None, in_office=True):
         db.execute("update users set in_office=%s where name='%s';" % (str(in_office), username))
 
 
-def add_song(db, url, title, user_id):
+def add_song(db, url, title, user_id, daterange):
     query_str = "insert into songs (title,url,user_id) select '%s','%s','%d' on conflict do nothing;" % (
         title, url, user_id)
     db.execute(query_str)
