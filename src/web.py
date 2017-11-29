@@ -17,7 +17,7 @@ app = Flask(__name__, template_folder=TEMPLATE_DIR)
 @click.command()
 @click.option('--christmas', default=False)
 @app.route("/")
-def main(christmas):
+def main(christmas=False):
     return render_template(INDEX_HTML, christmas_mode=christmas)
 
 
