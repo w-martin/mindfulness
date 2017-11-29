@@ -7,6 +7,7 @@ import util
 PLAYLIST_PATH = util.read_config('general')['playlist']
 
 
+@DeprecationWarning
 def load_csv():
     songs = dict()
     for l in read_playlist_lines():
@@ -23,6 +24,7 @@ def load_csv():
     return songs
 
 
+@DeprecationWarning
 def read_playlist_without_newlines():
     """ This gets the CSV data, and handles the non-existence of the file """
     try:
@@ -35,10 +37,12 @@ def read_playlist_without_newlines():
     return f_data
 
 
+@DeprecationWarning
 def read_playlist_lines():
     return read_playlist_without_newlines().split('\n')
 
 
+@DeprecationWarning
 def modify_playlist_lines(callback):
     # edit in place instead of re-writing the file to preserve additional information
     lines = read_playlist_lines()
@@ -58,6 +62,7 @@ def modify_playlist_lines(callback):
             f.write(line)
 
 
+@DeprecationWarning
 def playlist_line_has_been_played(line):
     try:
         return ast.literal_eval(line.split(',')[1])
@@ -82,6 +87,7 @@ def get_title_from_youtube_url(url):
     return remove_commas_from_string(output)
 
 
+@DeprecationWarning
 def fix_playlist_song_titles():
     def callback(line):
         ls = ('%s,,,,' % line).split(',')  # making sure it has enough elements!
