@@ -59,14 +59,11 @@ def add_entry():
     link = util.remove_commas_from_string(request.form["ytLink"])
     song = util.remove_commas_from_string(request.form["songName"])
 
-    if request.christmas_mode and request.form["christmasSong"]:
-        daterange = '[01/12/{year}, 31/12/{year}]'.format(year=datetime.date.today().year)
-    else:
-        daterange = None
+    festive = request.christmas_mode and request.form["christmasSong"]
 
     with database.connect_to_database() as db:
         user_id = database.get_userid(db, username)
-        database.add_song(db, link, song, user_id, daterange=daterange)
+        database.add_song(db, link, song, user_id, month=12 if festive else None)
 
     return redirect(url_for('main'))
 

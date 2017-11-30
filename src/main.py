@@ -82,6 +82,10 @@ def play_mp3(songname, timeout=None):
 
 def select_song(songs):
     if len(songs) > 0:
+        today = datetime.date.today()
+        priority_songs = [s for s in songs if today.weekday() == s.day or today.month == s.month]
+        if priority_songs:
+            songs = priority_songs
         song = random.choice(songs)
         return song
     else:

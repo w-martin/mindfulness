@@ -1,4 +1,5 @@
 import logging
+from collections import namedtuple
 from contextlib import contextmanager
 
 import psycopg2 as psycopg2
@@ -35,13 +36,10 @@ def read_playlist(playlist):
             yield line.strip().split(',')
 
 
-class Song(object):
-    def __init__(self, song_id, title, url, username, played):
-        self.song_id = song_id
-        self.title = title
-        self.url = url
-        self.username = username
-        self.played = played
+song_tuple = namedtuple('song', ['song_id', 'title', 'url', 'username', 'played', 'month', 'day'])
+
+
+class Song(song_tuple):
 
     def __str__(self):
         return "%s,%s,%s,%s" % (self.url, str(self.played), self.title, self.username)
@@ -61,7 +59,7 @@ def load_songs(include_played=False, include_out_of_office=False):
         if not include_played else ""
 
     with connect_to_database() as db:
-        query_str = "select songs.song_id,songs.title,songs.url,users.name,{is_played_case} \n" \
+        query_str = "select songs.song_id,songs.title,songs.url,users.name,{is_played_case},songs.month,songs.day \n" \
                     "from users,songs \n" \
                     " {is_played_join} \n" \
                     " {office_join} \n" \
@@ -73,7 +71,7 @@ def load_songs(include_played=False, include_out_of_office=False):
                                is_played_conditional=is_played_conditional)
         db.execute(query_str)
         results = db.fetchall()
-    songs = [Song(r[0], r[1], r[2], r[3], r[4]) for r in results]
+    songs = [Song(r[0], r[1], r[2], r[3], r[4], r[5], r[6]) for r in results]
     return songs
 
 
@@ -108,9 +106,10 @@ def set_user_in_office(username=None, in_office=True):
         db.execute("update users set in_office=%s where name='%s';" % (str(in_office), username))
 
 
-def add_song(db, url, title, user_id, daterange):
-    query_str = "insert into songs (title,url,user_id) select '%s','%s','%d' on conflict do nothing;" % (
-        title, url, user_id)
+def add_song(db, url, title, user_id, month=None, day=None):
+    query_str = "insert into songs (title,url,user_id{month_key}{day_key}) " \
+                "select '{title}','{url}','{user_id}'{month_value}{day_value} on conflict do nothing;".format(
+        title=title, url=url, user_id=user_id, month_key="", month_value="", day_key="", day_value="")
     db.execute(query_str)
     result = '1' == db.statusmessage.split()[-1]
     return result
