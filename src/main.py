@@ -4,6 +4,7 @@ import logging
 import os
 import random
 import shlex
+import socket
 import subprocess
 import sys
 import time
@@ -13,7 +14,6 @@ import vlc
 
 import database
 import util
-from util import BASE_PATH
 
 root = logging.getLogger()
 root.setLevel(logging.DEBUG)
@@ -24,27 +24,34 @@ formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(messag
 ch.setFormatter(formatter)
 root.addHandler(ch)
 
-PLAYLIST_PATH = os.path.join(BASE_PATH, util.read_config('general')['playlist'])
-SONG_PLAY_PATH = os.path.join(BASE_PATH, util.read_config('general')['song'])
+# paths
+PLAYLIST_PATH = os.path.join(util.BASE_PATH, util.read_config('general')['playlist'])
+SONG_PLAY_PATH = os.path.join(util.BASE_PATH, util.read_config('general')['song'])
+MINDFUL_SONG = os.path.join(util.BASE_PATH, util.read_config('general')['mindful_file'])
+# urls
+SERVER_URL = util.read_config('server')['url']
+REPO_URL = "https://github.com/w-martin/mindfulness/issues"
+# testing modes
 TESTING = util.read_config('testing')['song'] == 'True'
 SKIP_MINDFUL = util.read_config('testing')['mindfulness'] == 'True'
+# timeouts
 TIMEOUT_MINDFUL = int(util.read_config('timeout')['mindful'])
 TIMEOUT_SONG = int(util.read_config('timeout')['song'])
 
 
 def update_list(song):
-    database.mark_song_played(song.song_id)
-    # log that its done
-    with open('%s/mindful.log' % BASE_PATH, 'a') as f:
-        f.write("Played %s at %s\n" % (song.title, datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y")))
+    if not TESTING:
+        database.mark_song_played(song.song_id)
+        # log that its done
+        with open('%s/mindful.log' % util.BASE_PATH, 'a') as f:
+            f.write("Played %s at %s\n" % (song.title, datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y")))
 
 
 def play_mindful():
     if SKIP_MINDFUL:
         return
-    songname = "%s/mindful.mp3" % BASE_PATH
-    logging.info("Playing %s" % songname)
-    play_mp3(songname, TIMEOUT_MINDFUL)
+    logging.info("Playing %s" % MINDFUL_SONG)
+    play_mp3(MINDFUL_SONG, TIMEOUT_MINDFUL)
 
 
 def current_time():
@@ -94,14 +101,14 @@ def download_song(url):
         os.remove(get_song_path())
 
     # download and move to correct play path (for some versions only)
-    os.system("youtube-dl %s -o %s" % (url, "song.mkv"))
+    os.system("youtube-dl %s -o %s" % (url, os.path.join(util.BASE_PATH, "song.mkv")))
     song_path = get_song_path()
     logging.info("Downloaded %s to %s" % (url, song_path))
     return os.path.exists(get_song_path())
 
 
 def get_song_path():
-    potential_song_path = os.path.join(BASE_PATH, SONG_PLAY_PATH)
+    potential_song_path = os.path.join(util.BASE_PATH, SONG_PLAY_PATH)
     try:
         return glob.glob(potential_song_path)[0]
     except IndexError:
@@ -113,7 +120,6 @@ def get_song_path():
 @click.option('--testing', '-t', is_flag=True, help='Test the script without downloading or playing.')
 @click.option('--skip-mindful', '-s', is_flag=True, help='Test the script without playing mindfulnes.')
 def main(testing=False, skip_mindful=False):
-
     if testing:
         global TESTING
         TESTING = testing
@@ -141,9 +147,19 @@ def main(testing=False, skip_mindful=False):
         # notify on slack
         try:
             slack_url = get_slack_url()
-            msg = "The song of the day is: '%s' chosen by %s" % (song.title, song.username)
-            cmd = r"""curl -X POST -H 'Content-type: application/json' --data '{"text":"%s"}' %s""" % (msg, slack_url)
-            subprocess.call(shlex.split(cmd, posix=True))
+            chosen_str = " chosen by {username}".format(song.username) if song.username != "Unknown" else ""
+            server_url = SERVER_URL if SERVER_URL != "None" else "http://{hostname}:8484".format(socket.gethostname())
+            msg = "The song of the day is: {song_name}{chosen_str}:{url}\n" \
+                  "To add your songs please visit {server_url}, " \
+                  "or to provide bug reports or feature requests please visit {repo_url}" \
+                  "\n{release_notes}".format(song_name=song.title.replace('-', ''), chosen_str=chosen_str, url=song.url,
+                                             server_url=server_url, repo_url=REPO_URL, release_notes="")
+            if "None" != slack_url:
+                cmd = r"""curl -X POST -H 'Content-type: application/json' --data '{"text":"%s"}' %s""" % (
+                    msg, slack_url)
+                subprocess.call(shlex.split(cmd, posix=True))
+            else:
+                logging.info(msg)
         except (OSError, Exception) as ex:
             logging.info("Slack notifier failed: %s" % ex)
 
@@ -161,8 +177,7 @@ def main(testing=False, skip_mindful=False):
 
 
 def get_slack_url():
-    with open('%s/slack.url' % BASE_PATH, 'r') as f:
-        slack_url = f.read().strip()
+    slack_url = util.read_config('slack')['url']
     return slack_url
 
 
