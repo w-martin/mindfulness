@@ -4,7 +4,6 @@ from flask import Flask, render_template, url_for, request, redirect
 
 import database
 import util
-from fix_playlist_titles import get_title_from_youtube_url, remove_commas_from_string
 
 TEMPLATE_DIR = os.path.join(util.BASE_PATH, "templates")
 INDEX_HTML = 'index.html'
@@ -42,7 +41,7 @@ def get_song_name():
     try:
         url = request.args.get('url')
         if url:
-            return get_title_from_youtube_url(url)
+            return util.get_title_from_youtube_url(url)
         else:
             return '<URL was missing>'
     except Exception as ex:
@@ -52,9 +51,9 @@ def get_song_name():
 @app.route("/add-entry/", methods=["POST"])
 def add_entry():
     """ Adds an entry to the CSV database, and refreshes the home page to update """
-    username = remove_commas_from_string(request.form["name"])
-    link = remove_commas_from_string(request.form["ytLink"])
-    song = remove_commas_from_string(request.form["songName"])
+    username = util.remove_commas_from_string(request.form["name"])
+    link = util.remove_commas_from_string(request.form["ytLink"])
+    song = util.remove_commas_from_string(request.form["songName"])
 
     with database.connect_to_database() as db:
         user_id = database.get_userid(db, username)
