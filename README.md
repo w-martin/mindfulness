@@ -10,3 +10,4 @@ To use:
 - Ensure the DISPLAY and XDG_RUNTIME_DIR match the variables for your intend crontab user.
 - Populate playlist.csv with youtube links that you want to play after the mindfulness minute - 1 per line
 (Example in playlist_default.csv)
+- To incorporate as part of a custom slack app - create the slack.url file with content https://hooks.slack.com/services/<...>
