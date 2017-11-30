@@ -28,6 +28,11 @@
             localStorage.setItem('showOutOfOffice', document.getElementById("checkShowOutOfOffice").checked)
             window.location.reload(false);
         }
+        function toggleChristmas()
+        {
+            localStorage.setItem('isChristmasSong', document.getElementById("checkChristmasSong").checked)
+            window.location.reload(false);
+        }
         function showPlayed()
         {
             var showPlayedSongs = localStorage.getItem('showPlayed');
@@ -116,6 +121,10 @@
                 <input type="text" class="form-control" id="songName" name="songName"
                        placeholder="What is the Artist/Name of the song?">
 
+            {% if christmas_mode %}
+                    <br>
+                <input type="checkbox" name="christmasSong">Christmas Song
+            {% endif %}
 
             </div>
             <button type="submit" class="btn btn-success">Submit</button>
