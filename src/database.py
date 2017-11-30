@@ -109,7 +109,9 @@ def set_user_in_office(username=None, in_office=True):
 def add_song(db, url, title, user_id, month=None, day=None):
     query_str = "insert into songs (title,url,user_id{month_key}{day_key}) " \
                 "select '{title}','{url}','{user_id}'{month_value}{day_value} on conflict do nothing;".format(
-        title=title, url=url, user_id=user_id, month_key="", month_value="", day_key="", day_value="")
+        title=title, url=url, user_id=user_id,
+        month_key=",month" if month else "", month_value=",%d" % month if month else "",
+        day_key=",day" if day else "", day_value=",%d" % day if day else "")
     db.execute(query_str)
     result = '1' == db.statusmessage.split()[-1]
     return result

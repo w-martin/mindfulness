@@ -83,7 +83,7 @@ def play_mp3(songname, timeout=None):
 def select_song(songs):
     if len(songs) > 0:
         today = datetime.date.today()
-        priority_songs = [s for s in songs if today.weekday() == s.day or today.month == s.month]
+        priority_songs = [s for s in songs if today.weekday() == s.day or 12 == s.month]
         if priority_songs:
             songs = priority_songs
         song = random.choice(songs)
@@ -151,10 +151,10 @@ def main(testing=False, skip_mindful=False):
         # notify on slack
         try:
             slack_url = get_slack_url()
-            chosen_str = " chosen by {username}".format(song.username) if song.username != "Unknown" else ""
+            chosen_str = " chosen by {username}".format(username=song.username) if song.username != "Unknown" else ""
             server_url = SERVER_URL if SERVER_URL != "None" else "http://{hostname}:{port}".format(
                 hostname=socket.gethostname(), port=int(util.read_config('server')['port']))
-            msg = "The song of the day is: {song_name}{chosen_str}:{url}\n" \
+            msg = "The song of the day is: {song_name}{chosen_str}: {url}\n" \
                   "To add your songs please visit {server_url}, " \
                   "or to provide bug reports or feature requests please visit {repo_url}" \
                   "\n{release_notes}".format(song_name=song.title.replace('-', ''), chosen_str=chosen_str, url=song.url,

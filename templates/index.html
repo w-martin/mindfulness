@@ -121,12 +121,13 @@
                 <input type="text" class="form-control" id="songName" name="songName"
                        placeholder="What is the Artist/Name of the song?">
 
+            {% if christmas_mode %}
+                    <br>
+                <input type="checkbox" name="christmasSong">Christmas Song
+            {% endif %}
 
             </div>
             <button type="submit" class="btn btn-success">Submit</button>
-            {% if christmas_mode %}
-                <input type="checkbox" name="christmasSong" value="christmasSong">Christmas Song
-            {% endif %}}
         </form>
     </div>
 

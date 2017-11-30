@@ -9,6 +9,7 @@ import util
 
 TEMPLATE_DIR = os.path.join(util.BASE_PATH, "templates")
 INDEX_HTML = 'index.html'
+CHRISTMAS_MODE = util.read_config('modes')['christmas'] == 'True'
 
 app = Flask(__name__, template_folder=TEMPLATE_DIR)
 
@@ -16,7 +17,7 @@ app = Flask(__name__, template_folder=TEMPLATE_DIR)
 @click.command()
 @click.option('--christmas', default=False)
 @app.route("/")
-def main(christmas=False):
+def main(christmas=CHRISTMAS_MODE):
     return render_template(INDEX_HTML, christmas_mode=christmas)
 
 
@@ -59,7 +60,7 @@ def add_entry():
     link = util.remove_commas_from_string(request.form["ytLink"])
     song = util.remove_commas_from_string(request.form["songName"])
 
-    festive = request.christmas_mode and request.form["christmasSong"]
+    festive = CHRISTMAS_MODE and "christmasSong" in request.form
 
     with database.connect_to_database() as db:
         user_id = database.get_userid(db, username)
