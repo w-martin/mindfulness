@@ -148,7 +148,8 @@ def main(testing=False, skip_mindful=False):
         try:
             slack_url = get_slack_url()
             chosen_str = " chosen by {username}".format(song.username) if song.username != "Unknown" else ""
-            server_url = SERVER_URL if SERVER_URL != "None" else "http://{hostname}:8484".format(socket.gethostname())
+            server_url = SERVER_URL if SERVER_URL != "None" else "http://{hostname}:{port}".format(
+                hostname=socket.gethostname(), port=int(util.read_config('server')['port']))
             msg = "The song of the day is: {song_name}{chosen_str}:{url}\n" \
                   "To add your songs please visit {server_url}, " \
                   "or to provide bug reports or feature requests please visit {repo_url}" \

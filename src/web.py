@@ -72,4 +72,4 @@ def add_entry():
 
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=8484)
+    app.run(host='0.0.0.0', port=int(util.read_config('server')['port']))
