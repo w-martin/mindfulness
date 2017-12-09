@@ -23,6 +23,7 @@ DROP DATABASE mindfulness;
 
 CREATE DATABASE mindfulness WITH TEMPLATE = template0 ENCODING = 'UTF8' LC_COLLATE = 'en_GB.UTF-8' LC_CTYPE = 'en_GB.UTF-8';
 
+CREATE USER mindfulness WITH PASSWORD 'mindfulness';
 
 ALTER DATABASE mindfulness OWNER TO mindfulness;
 

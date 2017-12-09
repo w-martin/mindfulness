@@ -25,8 +25,8 @@ def remove_commas_from_string(input_string):
 
 def get_title_from_youtube_url(url):
     try:
-        output = str(subprocess.check_output('youtube-dl --get-title %s --no-warnings' % url, stderr=subprocess.STDOUT,
-                                             shell=True)).strip()
+        output = str(subprocess.check_output(['youtube-dl', '--get-title', url, '--no-warnings'],
+                                             stderr=subprocess.STDOUT)).strip()
     except subprocess.CalledProcessError as ex:
         output = str(ex.output).strip()
     except OSError as ex:

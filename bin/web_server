@@ -1,3 +1,4 @@
 #!/bin/sh
-/usr/bin/python /opt/mindfulness/src/web.py "$@" 
+BASE_DIR=$(crudini --get mindfulness_config.ini general path)
+/usr/bin/python $BASE_DIR/src/web.py "$@" 
 
