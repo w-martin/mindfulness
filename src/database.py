@@ -2,6 +2,7 @@ import logging
 from collections import namedtuple
 from contextlib import contextmanager
 
+import datetime
 import psycopg2 as psycopg2
 
 from util import read_config
@@ -48,7 +49,16 @@ class Song(song_tuple):
         return "('%s' chosen by %s)" % (self.title, self.username)
 
 
-def load_songs(include_played=False, include_out_of_office=False):
+def filter_priority(songs):
+    today = datetime.date.today()
+    priority_songs = [s for s in songs if today.weekday() == s.day or today.month == s.month]
+    if priority_songs:
+        return priority_songs
+    else:
+        return [s for s in songs if not s.month and not s.day]
+
+
+def load_songs(include_played=False, include_out_of_office=False, priority=True):
     office_join = "left outer join out_of_office o \n on o.user_id=songs.user_id"
     office_conditional = "and songs.user_id not in (select o.user_id from out_of_office o " \
                          "where now() between o.from and o.to )" if not include_out_of_office else ""
@@ -72,6 +82,10 @@ def load_songs(include_played=False, include_out_of_office=False):
         db.execute(query_str)
         results = db.fetchall()
     songs = [Song(r[0], r[1], r[2], r[3], r[4], r[5], r[6]) for r in results]
+
+    if priority:
+        songs = filter_priority(songs)
+
     return songs
 
 

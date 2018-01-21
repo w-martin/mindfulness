@@ -82,10 +82,6 @@ def play_mp3(songname, timeout=None):
 
 def select_song(songs):
     if len(songs) > 0:
-        today = datetime.date.today()
-        priority_songs = [s for s in songs if today.weekday() == s.day or 12 == s.month]
-        if priority_songs:
-            songs = priority_songs
         song = random.choice(songs)
         return song
     else:
@@ -131,7 +127,7 @@ def main(testing=False, skip_mindful=False):
         global SKIP_MINDFUL
         SKIP_MINDFUL = skip_mindful
 
-    unplayed = database.load_songs(include_played=False, include_out_of_office=False)
+    unplayed = database.load_songs(include_played=False, include_out_of_office=False, priority=True)
     song = select_song(unplayed)
     success = False
     if song is not None:

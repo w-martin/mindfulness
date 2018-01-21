@@ -9,7 +9,8 @@
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
     <script>
         function validateName(){
-          document.getElementById('songName').value = httpGet("/song_name?url=" + document.getElementById("ytLink").value);
+          document.getElementById('songName').value =
+              httpGet("/song_name?url=" + document.getElementById("ytLink").value);
         }
         function httpGet(theUrl)
         {
@@ -26,11 +27,6 @@
         function toggleOutOfOffice()
         {
             localStorage.setItem('showOutOfOffice', document.getElementById("checkShowOutOfOffice").checked)
-            window.location.reload(false);
-        }
-        function toggleChristmas()
-        {
-            localStorage.setItem('isChristmasSong', document.getElementById("checkChristmasSong").checked)
             window.location.reload(false);
         }
         function showPlayed()
@@ -61,63 +57,39 @@
                 border: 1px black solid;
                 padding: 5px;
             }
-
-
     </style>
 </head>
 
 <body onload="showPlayed()">
 
 <div class="container">
-    <!-- Register Modal -->
-    <div class="modal fade" id="myModal" role="dialog">
-        <div class="modal-dialog modal-sm">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <button type="button" class="close" data-dismiss="modal">&times;</button>
-                    <h4 class="modal-title">Coming soon!</h4>
-                </div>
-                <div class="modal-body">
-                    <p>This feature (and others) could be coming soon if somebody bothers to implement it.</p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <div class="header">
-        <nav>
-            <ul class="nav nav-pills pull-right">
-                <button type="button" class="btn btn-primary btn-lg" data-target="#">Home</button>
-                <button type="button" class="btn btn-success btn-lg" data-toggle="modal" data-target="#myModal">Holiday Mode</button>
-                <!--<button type="button" class="btn btn-info btn-lg" data-toggle="modal" data-target="#myModal">Register</button>-->
-            </ul>
-        </nav>
         <h3 class="text-muted">Mindfulness Song Manager</h3>
     </div>
 
     <div class="jumbotron">
         <div id="header" style="position:relative;text-align:left;">
             <div id="sampleLink" style="position:absolute; top:0px; right:0px;">
-                <a href="https://github.com/w-martin/mindfulness/issues" type="button" class="btn btn-default" role="button">Request Feature or Bug Fix</a>
+                <a href="https://github.com/w-martin/mindfulness/issues" type="button"
+                   class="btn btn-default" role="button">Request Feature or Bug Fix</a>
             </div>
             <h2 style="text-align:left">Add a Song</h2>
         </div>
         <p class="lead"></p>
         <form action="/add-entry/" method="post">
             <div class="form-group">
-                <label for="name">User Name:</label>
+                <label for="name">Your Name:</label>
                 <input type="text" class="form-control" id="name" name="name" placeholder="What's your name?">
                 <br>
                 <label for="ytLink">YouTube Link:</label>
                 <input type="text" class="form-control" id="ytLink" name="ytLink"
                        placeholder="Copy and paste the youtube link e.g. https://www.youtube.com/watch?v=9X_ViIPA-Gc">
                 <br>
-                <input type='button' name='autoDesc' class="btn btn-info" value='Auto Fill Description (takes 10s!)' onclick="validateName()" />
+                <input type='button' name='autoDesc' class="btn btn-info"
+                       value='Auto Fill Description (takes 10s!)' onclick="validateName()" />
                 <br><br>
-                <label for="songName">Description (Artist/Title):</label>
+                <label for="songName">Song Description (Artist/Title):</label>
                 <input type="text" class="form-control" id="songName" name="songName"
                        placeholder="What is the Artist/Name of the song?">
 
@@ -132,8 +104,10 @@
     </div>
 
     <div class="jumbotron" id="playlist">
-        <label class="checkbox-inline"><input type="checkbox" id="checkShowPlayed" value="" onchange="togglePlayed()">Show Played Songs?</label>
-        <label class="checkbox-inline"><input type="checkbox" id="checkShowOutOfOffice" value="" onchange="toggleOutOfOffice()">Show Out Of Office Songs?</label><br><br>
+        <label class="checkbox-inline"><input type="checkbox" id="checkShowPlayed" value=""
+                                              onchange="togglePlayed()">Show Played Songs?</label>
+        <label class="checkbox-inline"><input type="checkbox" id="checkShowOutOfOffice" value=""
+                                              onchange="toggleOutOfOffice()">Show Out Of Office Songs?</label><br><br>
     </div>
     <script>
             d3.text("/playlist?showPlayed=" + showPlayed() + "&showOutOfOffice=" + showOutOfOffice(), function(data){
@@ -151,19 +125,13 @@
                         .append("td")
                         .html(function(d) { return d; });
             });
-
-
-
     </script>
-
-    ​
 
     <footer class="footer">
         <div id="footerText" style="position:relative;text-align:left;"><!-- define relative so child absolute's are based on this elements origin -->
             <div id="mindfulnessLink" style="position:absolute; top:0px; right:0px;">
                 <a href="https://github.com/w-martin/mindfulness">https://github.com/w-martin/mindfulness</a>
             </div>
-            &copy; GreenRunning ML 2017
         </div>
     </footer>
 
