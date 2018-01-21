@@ -16,10 +16,10 @@ import database
 import util
 
 root = logging.getLogger()
-root.setLevel(logging.DEBUG)
+root.setLevel(logging.INFO)
 
 ch = logging.StreamHandler(sys.stdout)
-ch.setLevel(logging.DEBUG)
+ch.setLevel(logging.INFO)
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 ch.setFormatter(formatter)
 root.addHandler(ch)
@@ -101,7 +101,9 @@ def download_song(url):
         os.remove(get_song_path())
 
     # download and move to correct play path (for some versions only)
-    os.system("youtube-dl %s -o %s" % (url, os.path.join(util.BASE_PATH, "song.mkv")))
+    command = "youtube-dl %s -o %s" % (url, "song.mkv")
+    with util.chdir(util.BASE_PATH):
+        os.system(command)
     song_path = get_song_path()
     logging.info("Downloaded %s to %s" % (url, song_path))
     return os.path.exists(get_song_path())

@@ -3,6 +3,7 @@ import logging
 import os
 import subprocess
 from ConfigParser import ConfigParser
+from contextlib import contextmanager
 
 try:
     CONFIG_INI = os.path.abspath(glob.glob('mindfulness_config.ini')[0])
@@ -15,8 +16,11 @@ def read_config(section):
     parser = ConfigParser()
     parser.read(CONFIG_INI)
     config_params = {param[0]: param[1] for param in parser.items(section)}
-    logging.info("Loaded %d parameters for section %s", len(config_params), section)
+    logging.debug("Loaded %d parameters for section %s", len(config_params), section)
     return config_params
+
+
+BASE_PATH = read_config('general')['path']
 
 
 def remove_commas_from_string(input_string):
@@ -36,4 +40,9 @@ def get_title_from_youtube_url(url):
     return remove_commas_from_string(output)
 
 
-BASE_PATH = read_config('general')['path']
+@contextmanager
+def chdir(path):
+    cwd = os.getcwd()
+    os.chdir(path)
+    yield
+    os.chdir(cwd)
