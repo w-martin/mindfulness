@@ -5,6 +5,7 @@ To use:
 - pip install python-vlc ast youtube-dl click flask psycopg2
 - apt install vlc postgresql
 - Ensure youtube-dl is system wide.
+- Copy templates/mindfulness_config.ini to the base directory
 - Adjust the config_mindfulness.ini to your requirements, most importantly the value for `path` (defaults assume this is installed in /opt/mindfulness)
 - Ensure locale "en_GB.UTF-8" is installed on linux system (`locale -a` checks installed locales, `sudo locale-gen en_GB.UTF-8` installs it if not)
 - Ensure that postgres server is running (`ps -fu postgres` checks, `sudo /etc/init.d/postgresql restart` starts the server if not)
