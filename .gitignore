@@ -9,3 +9,4 @@ slack.url
 *.webm
 *.pyc
 *.bak
+/mindfulness_config.ini
