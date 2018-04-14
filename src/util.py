@@ -24,7 +24,7 @@ BASE_PATH = read_config('general')['path']
 
 
 def remove_commas_from_string(input_string):
-    return str(input_string).translate(None, ',')
+    return input_string.replace(',', '')
 
 
 def get_title_from_youtube_url(url):
