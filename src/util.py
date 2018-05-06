@@ -1,8 +1,8 @@
+import configparser
 import glob
 import logging
 import os
 import subprocess
-from ConfigParser import ConfigParser
 from contextlib import contextmanager
 
 try:
@@ -11,16 +11,34 @@ except:
     # try default path
     CONFIG_INI = '/opt/mindfulness/mindfulness_config.ini'
 
-
-def read_config(section):
-    parser = ConfigParser()
-    parser.read(CONFIG_INI)
-    config_params = {param[0]: param[1] for param in parser.items(section)}
-    logging.debug("Loaded %d parameters for section %s", len(config_params), section)
-    return config_params
+CONFIG_PARSER = None
+DEFAULT_PORT = 8484
 
 
-BASE_PATH = read_config('general')['path']
+def get_config_parser():
+    global CONFIG_PARSER
+    if CONFIG_PARSER is None:
+        CONFIG_PARSER = configparser.ConfigParser()
+        CONFIG_PARSER.read(CONFIG_INI)
+    return CONFIG_PARSER
+
+
+def read_config(section, item, type=str, default=None):
+    config_parser = get_config_parser()
+    if type is int:
+        result = config_parser.getint(section, item, fallback=default)
+    elif type is float:
+        result = config_parser.getfloat(section, item, fallback=default)
+    elif type is bool:
+        result = config_parser.getboolean(section, item, fallback=default)
+    else:
+        result = config_parser.get(section, item, fallback=default)
+
+    logging.debug("Loaded config setting {} - {}: {}".format(section, item, result))
+    return result
+
+
+BASE_PATH = read_config('general', 'path')
 
 
 def remove_commas_from_string(input_string):

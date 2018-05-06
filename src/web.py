@@ -8,7 +8,7 @@ import util
 
 TEMPLATE_DIR = os.path.join(util.BASE_PATH, "templates")
 INDEX_HTML = 'index.html'
-CHRISTMAS_MODE = util.read_config('modes')['christmas'] == 'True'
+CHRISTMAS_MODE = util.read_config('modes', 'christmas', type=bool, default=False)
 
 app = Flask(__name__, template_folder=TEMPLATE_DIR)
 
@@ -69,4 +69,4 @@ def add_entry():
 
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=int(util.read_config('server')['port']))
+    app.run(host='0.0.0.0', port=util.read_config('server', 'port', type=int, default=util.DEFAULT_PORT))

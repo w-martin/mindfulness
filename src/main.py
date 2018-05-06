@@ -3,6 +3,7 @@ import glob
 import logging
 import os
 import random
+import re
 import shlex
 import socket
 import subprocess
@@ -10,33 +11,26 @@ import sys
 import time
 
 import click
-import re
 import vlc
+import youtube_dl
 
 import database
 import util
 
-root = logging.getLogger()
-root.setLevel(logging.INFO)
-
-ch = logging.StreamHandler(sys.stdout)
-ch.setLevel(logging.INFO)
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-ch.setFormatter(formatter)
-root.addHandler(ch)
-
 # paths
-PLAYLIST_PATH = os.path.join(util.BASE_PATH, util.read_config('general')['playlist'])
-SONG_PLAY_PATH = os.path.join(util.BASE_PATH, util.read_config('general')['song'])
-MINDFUL_SONG = os.path.join(util.BASE_PATH, util.read_config('general')['mindful_file'])
+PLAYLIST_PATH = os.path.join(util.BASE_PATH, util.read_config('general', 'playlist'))
+SONG_PLAY_PATH = os.path.join(util.BASE_PATH, util.read_config('general', 'song', 'song.mkv'))
+MINDFUL_SONG = os.path.join(util.BASE_PATH, util.read_config('general', 'mindful_file'))
 # urls
-SERVER_URL = util.read_config('server')['url']
+SERVER_URL = util.read_config('server', 'url')
 REPO_URL = "https://github.com/w-martin/mindfulness/issues"
 # testing modes
-TESTING = util.read_config('testing')['song'] == 'True'
+TESTING = util.read_config('testing', 'song', type=bool)
 # timeouts
-TIMEOUT_MINDFUL = int(util.read_config('timeout')['mindful'])
-TIMEOUT_SONG = int(util.read_config('timeout')['song'])
+TIMEOUT_MINDFUL = util.read_config('timeout', 'mindful', type=int, default=118)
+TIMEOUT_SONG = util.read_config('timeout', 'song', type=int, default=660)
+
+logger = logging.getLogger(__name__)
 
 
 def update_list(song):
@@ -48,7 +42,7 @@ def update_list(song):
 
 
 def play_mindful():
-    logging.info("Playing %s" % MINDFUL_SONG)
+    logger.info("Playing %s" % MINDFUL_SONG)
     play_mp3(MINDFUL_SONG, TIMEOUT_MINDFUL)
 
 
@@ -66,13 +60,13 @@ def play_mp3(songname, timeout=None):
     if -1 == length and timeout:
         length = timeout
     start_time = current_time()
-    logging.info("Playing %s for %d seconds" % (songname, length))
+    logger.info("Playing %s for %d seconds" % (songname, length))
     p.play()
     time.sleep(5)
     while length > (current_time() - start_time):
         time.sleep(2)
         played = True
-    logging.info("%d <= %d - stopping" % (length, (current_time() - start_time)))
+    logger.info("%d <= %d - stopping" % (length, (current_time() - start_time)))
     if timeout:
         p.stop()
     return played
@@ -99,11 +93,17 @@ def download_song(url):
         os.remove(get_song_path())
 
     # download and move to correct play path (for some versions only)
-    command = "youtube-dl %s -o %s" % (url, "song.mkv")
     with util.chdir(util.BASE_PATH):
-        os.system(command)
+        logger.info("Downloading {}".format(url))
+        ydl_opts = {
+            'format': 'bestaudio/best',
+            'outtmpl': 'song.mkv',
+            'noplaylist': True
+        }
+        ydl = youtube_dl.YoutubeDL(ydl_opts)
+        ydl.download([url])
     song_path = get_song_path()
-    logging.info("Downloaded %s to %s" % (url, song_path))
+    logger.info("Downloaded %s to %s" % (url, song_path))
     return os.path.exists(get_song_path())
 
 
@@ -137,11 +137,15 @@ def main(testing=False, skip_mindful=False, skip_slack=False, skip_discord=False
         global TESTING
         TESTING = testing
 
+    logger.info('Loading songs')
     unplayed = database.load_songs(include_played=False, include_out_of_office=False, priority=True)
+
+    logger.info('Selecting song')
     song = select_song(unplayed)
     success = False
     attempts = 5
     if song is not None:
+        logger.info('Downloading song')
         while not success and attempts > 0:
             attempts -= 1
             success = download_song(song.url)
@@ -155,8 +159,10 @@ def main(testing=False, skip_mindful=False, skip_slack=False, skip_discord=False
 
     if not skip_mindful:
         # play the mindfulness mp3
+        logger.info('Playing mindful track')
         play_mindful()
 
+    logger.info('Sending notifications')
     msg = notification_message(song)
     if not skip_slack:
         slack_notification(msg)
@@ -165,16 +171,17 @@ def main(testing=False, skip_mindful=False, skip_slack=False, skip_discord=False
         discord_notification(msg, thumbnail_url)
 
     # play
+    logger.info('Playing song at {}'.format(SONG_PLAY_PATH))
     played = play_song()
     if played:
-        logging.info("Song played")
+        logger.info("Song played")
         if os.path.exists(SONG_PLAY_PATH):
             os.remove(SONG_PLAY_PATH)
-            logging.info("Removed %s" % SONG_PLAY_PATH)
+            logger.info("Removed %s" % SONG_PLAY_PATH)
         update_list(song)
-        logging.info("Updated database")
+        logger.info("Updated database")
     else:
-        logging.info("Song did not play")
+        logger.info("Song did not play")
 
 
 def slack_notification(msg):
@@ -184,49 +191,56 @@ def slack_notification(msg):
         if "None" != slack_url:
             cmd = r"""curl -X POST -H 'Content-type: application/json' --data '{"text":"%s"}' %s""" % (
                 msg.replace("'", '"'), slack_url)
-            logging.info(cmd)
+            logger.info(cmd)
             subprocess.call(shlex.split(cmd, posix=True))
     except (OSError, Exception) as ex:
-        logging.info("Slack notifier failed: %s" % ex)
+        logger.info("Slack notifier failed: %s" % ex)
 
 
 def discord_notification(msg, thumbnail_url):
-    try:
-        # notify on discord
-        discord_url = get_discord_url()
-        if "None" != discord_url:
-            payload = r"""{{ "embeds": [{{"title": "Mindfulness notification", 
-            "thumbnail": {{"url": "{thumbnail}"}}, "description": "{content}"}}] }}""".\
-                format(content=msg.replace("'", '"'), thumbnail=thumbnail_url)
-            cmd = r"""curl -X POST -H "Content-Type: application/json" --data '{}' {}""".format(payload, discord_url)
-            logging.info(cmd)
-            subprocess.call(['curl', '-X', 'POST', '-H', '"Content-Type: application/json"',
-                             '--data', payload, discord_url])
-    except (OSError, Exception) as ex:
-        logging.info("Discord notifier failed: %s" % ex)
+    # notify on discord
+    discord_url = get_discord_url()
+    payload = r"""{{ "embeds": [{{"title": "Mindfulness notification", 
+    "thumbnail": {{"url": "{thumbnail}"}}, "description": "{content}"}}] }}""". \
+        format(content=msg.replace("'", '"'), thumbnail=thumbnail_url)
+    cmd = r"""curl -X POST -H "Content-Type: application/json" --data '{}' {}""".format(payload, discord_url)
+    logger.info(cmd)
+
+    if "None" != discord_url:
+        for i in range(util.get_config_parser().getint('discord', 'retries', fallback=2)):
+            try:
+                subprocess.call(['curl', '-X', 'POST', '-H', '"Content-Type: application/json"',
+                                 '--data', payload, discord_url])
+            except (OSError, Exception) as ex:
+                logger.info("Discord notifier failed: %s" % ex)
+            else:
+                logger.info("Discord notifier succeeded")
+                break
 
 
 def notification_message(song):
     chosen_str = " chosen by {username}".format(username=song.username) if song.username != "Unknown" else ""
     server_url = SERVER_URL if SERVER_URL != "None" else "http://{hostname}:{port}".format(
-        hostname=socket.gethostname(), port=int(util.read_config('server')['port']))
+        hostname=socket.gethostname(), port=util.read_config('server', 'port', type=int, default=util.DEFAULT_PORT))
     msg = "The song of the day is: {song_name}{chosen_str}: {url} \\n" \
           "To add your songs please visit {server_url}, " \
           "or to provide bug reports or feature requests please visit {repo_url}" \
           "\\n{release_notes}".format(song_name=song.title, chosen_str=chosen_str, url=song.url,
-                                     server_url=server_url, repo_url=REPO_URL, release_notes="")
+                                      server_url=server_url, repo_url=REPO_URL, release_notes="")
     return msg
 
 
 def get_slack_url():
-    slack_url = util.read_config('slack')['url']
+    slack_url = util.read_config('slack', 'url')
     return slack_url
 
 
 def get_discord_url():
-    discord_url = util.read_config('discord')['url']
+    discord_url = util.read_config('discord', 'url')
     return discord_url
 
 
 if __name__ == '__main__':
+    logging.basicConfig()
+    logger.setLevel(logging.DEBUG)
     main()

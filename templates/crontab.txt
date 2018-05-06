@@ -1,6 +1,8 @@
+SHELL=/bin/bash
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin
 XDG_RUNTIME_DIR=/run/user/1001
 DISPLAY=:1.0
+source activate mindfulness
 
-59 14 * * 1-5 /opt/mindfulness/run.sh > /tmp/mindful.log
+59 14 * * 1-5 /opt/mindfulness/mindfulness > /tmp/mindful.log
 
