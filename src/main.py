@@ -183,7 +183,7 @@ def slack_notification(msg):
         slack_url = get_slack_url()
         if "None" != slack_url:
             cmd = r"""curl -X POST -H 'Content-type: application/json' --data '{"text":"%s"}' %s""" % (
-                msg, slack_url)
+                msg.replace("'", '"'), slack_url)
             logging.info(cmd)
             subprocess.call(shlex.split(cmd, posix=True))
     except (OSError, Exception) as ex:
@@ -195,10 +195,13 @@ def discord_notification(msg, thumbnail_url):
         # notify on discord
         discord_url = get_discord_url()
         if "None" != discord_url:
-            payload = r"""{{ "embeds": [{{"title": "Mindfulness notification", "thumbnail": {{"url": "{thumbnail}"}}, "description": "{content}"}}] }}""".format(content=msg, thumbnail=thumbnail_url)
-            cmd = r"""curl -X POST -H "Content-Type: application/json" --data {} {}""".format(payload, discord_url)
+            payload = r"""{{ "embeds": [{{"title": "Mindfulness notification", 
+            "thumbnail": {{"url": "{thumbnail}"}}, "description": "{content}"}}] }}""".\
+                format(content=msg.replace("'", '"'), thumbnail=thumbnail_url)
+            cmd = r"""curl -X POST -H "Content-Type: application/json" --data '{}' {}""".format(payload, discord_url)
             logging.info(cmd)
-            subprocess.call(['curl', '-X', 'POST', '-H', '"Content-Type: application/json"', '--data', payload, discord_url])
+            subprocess.call(['curl', '-X', 'POST', '-H', '"Content-Type: application/json"',
+                             '--data', payload, discord_url])
     except (OSError, Exception) as ex:
         logging.info("Discord notifier failed: %s" % ex)
 
@@ -210,7 +213,7 @@ def notification_message(song):
     msg = "The song of the day is: {song_name}{chosen_str}: {url} \\n" \
           "To add your songs please visit {server_url}, " \
           "or to provide bug reports or feature requests please visit {repo_url}" \
-          "\\n{release_notes}".format(song_name=song.title.replace('-', ''), chosen_str=chosen_str, url=song.url,
+          "\\n{release_notes}".format(song_name=song.title, chosen_str=chosen_str, url=song.url,
                                      server_url=server_url, repo_url=REPO_URL, release_notes="")
     return msg
 
