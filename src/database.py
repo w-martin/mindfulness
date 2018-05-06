@@ -5,15 +5,17 @@ from contextlib import contextmanager
 import datetime
 import psycopg2 as psycopg2
 
-from util import read_config
+import util
 
 
 @contextmanager
 def connect_to_database():
     # connect
-    database_params = read_config('postgresql')
     logging.info('Connecting to the mindful database')
-    conn = psycopg2.connect(**database_params)
+    conn = psycopg2.connect(host=util.read_config('postgresql', 'host'),
+                            database=util.read_config('postgresql', 'database'),
+                            user=util.read_config('postgresql', 'user'),
+                            password=util.read_config('postgresql', 'password'))
 
     cur = conn.cursor()
     yield cur

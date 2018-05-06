@@ -5,7 +5,7 @@ import shutil
 
 import util
 
-PLAYLIST_PATH = util.read_config('general')['playlist']
+PLAYLIST_PATH = util.read_config('general', 'playlist')
 
 
 @DeprecationWarning
