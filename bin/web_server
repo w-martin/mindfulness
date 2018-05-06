@@ -1,3 +1,2 @@
-#!/bin/sh
-/usr/bin/python /opt/mindfulness/src/web.py "$@" 
-
+#!/bin/bash
+python /opt/mindfulness/src/web.py "$@"
