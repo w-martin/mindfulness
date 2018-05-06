@@ -183,7 +183,7 @@ def slack_notification(msg):
         slack_url = get_slack_url()
         if "None" != slack_url:
             cmd = r"""curl -X POST -H 'Content-type: application/json' --data '{"text":"%s"}' %s""" % (
-                msg, slack_url)
+                msg.replace("'", '"'), slack_url)
             logging.info(cmd)
             subprocess.call(shlex.split(cmd, posix=True))
     except (OSError, Exception) as ex:
