@@ -104,6 +104,7 @@
     </div>
 
     <div class="jumbotron" id="playlist">
+        <h2>Song Queue</h2>
         <label class="checkbox-inline"><input type="checkbox" id="checkShowPlayed" value=""
                                               onchange="togglePlayed()">Show Played Songs?</label>
         <label class="checkbox-inline"><input type="checkbox" id="checkShowOutOfOffice" value=""
@@ -113,7 +114,9 @@
             d3.text("/playlist?showPlayed=" + showPlayed() + "&showOutOfOffice=" + showOutOfOffice(), function(data){
                 var parsedCSV = d3.csv.parseRows(data);
 
+                var no_unplayed = parsedCSV.length;
                 var container = d3.select("#playlist")
+                    .append("text").text(no_unplayed + " unplayed songs")
                     .append("table").attr("class", "table table-hover")
 
                     .selectAll("tr")
