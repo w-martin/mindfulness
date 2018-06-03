@@ -34,11 +34,11 @@ logger = logging.getLogger(__name__)
 
 
 def update_list(song):
-    if not TESTING:
-        database.mark_song_played(song.song_id)
-        # log that its done
-        with open('%s/mindful.log' % utils.BASE_PATH, 'a') as f:
-            f.write("Played %s at %s\n" % (song.title, datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y")))
+    # if not TESTING:
+    database.mark_song_played(song.song_id)
+    # log that its done
+    with open('%s/mindful.log' % utils.BASE_PATH, 'a') as f:
+        f.write("Played %s at %s\n" % (song.title, datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y")))
 
 
 def play_mindful():
@@ -127,6 +127,18 @@ def get_thumbnail_url(url):
     return ''
 
 
+def _get_songs():
+    days = utils.get_cycle_days()
+    songs = database.load_songs(include_played=False, include_out_of_office=False,
+                                cycle_users_timedelta=datetime.timedelta(days=days))
+    if len(songs) == 0:
+        while days > 0 and len(songs) == 0:
+            days -= 1
+            songs = database.load_songs(include_played=False, include_out_of_office=False,
+                                        cycle_users_timedelta=datetime.timedelta(days=days))
+    return songs
+
+
 @click.command(context_settings=dict(ignore_unknown_options=True, allow_extra_args=True))
 @click.option('--testing', is_flag=True, help='Test the script without downloading or playing.')
 @click.option('--skip-mindful', is_flag=True, help='Test the script without playing mindfulness.', default=False)
@@ -138,7 +150,7 @@ def main(testing=False, skip_mindful=False, skip_slack=False, skip_discord=False
         TESTING = testing
 
     logger.info('Loading songs')
-    unplayed = database.load_songs(include_played=False, include_out_of_office=False)
+    unplayed = _get_songs()
 
     logger.info('Selecting song')
     song = select_song(unplayed)

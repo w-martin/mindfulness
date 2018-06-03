@@ -167,7 +167,7 @@ def filter_priority(songs):
         return [s for s in songs if not s.month and not s.day]
 
 
-def load_songs(include_played=True, include_out_of_office=False):
+def load_songs(include_played=True, include_out_of_office=False, cycle_users_timedelta=None):
     songs = []
     with session_scope() as session:
         query = session.query(Song)
@@ -183,6 +183,12 @@ def load_songs(include_played=True, include_out_of_office=False):
                 filter(OutOfOffice.from_date <= datetime.date.today()).\
                 filter(OutOfOffice.to_date >= datetime.date.today())
             query = query.filter(Song.user_id.notin_(ooo_subquery))
+
+        if cycle_users_timedelta:
+            cut_off_date = (datetime.datetime.now() - cycle_users_timedelta).date()
+            play_cycle_subquery = session.query(Song.user_id).join(Play).\
+                filter(Play.date > cut_off_date)
+            query = query.filter(Song.user_id.notin_(play_cycle_subquery))
 
         song_results = query.all()
         for result in song_results:
