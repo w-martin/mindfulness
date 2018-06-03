@@ -15,20 +15,20 @@ import vlc
 import youtube_dl
 
 import database
-import util
+import utils
 
 # paths
-PLAYLIST_PATH = os.path.join(util.BASE_PATH, util.read_config('general', 'playlist'))
-SONG_PLAY_PATH = os.path.join(util.BASE_PATH, util.read_config('general', 'song', 'song.mkv'))
-MINDFUL_SONG = os.path.join(util.BASE_PATH, util.read_config('general', 'mindful_file'))
+PLAYLIST_PATH = os.path.join(utils.BASE_PATH, utils.read_config('general', 'playlist'))
+SONG_PLAY_PATH = os.path.join(utils.BASE_PATH, utils.read_config('general', 'song', 'song.mkv'))
+MINDFUL_SONG = os.path.join(utils.BASE_PATH, utils.read_config('general', 'mindful_file'))
 # urls
-SERVER_URL = util.read_config('server', 'url')
+SERVER_URL = utils.read_config('server', 'url')
 REPO_URL = "https://github.com/w-martin/mindfulness/issues"
 # testing modes
-TESTING = util.read_config('testing', 'song', type=bool)
+TESTING = utils.read_config('testing', 'song', type=bool)
 # timeouts
-TIMEOUT_MINDFUL = util.read_config('timeout', 'mindful', type=int, default=118)
-TIMEOUT_SONG = util.read_config('timeout', 'song', type=int, default=660)
+TIMEOUT_MINDFUL = utils.read_config('timeout', 'mindful', type=int, default=118)
+TIMEOUT_SONG = utils.read_config('timeout', 'song', type=int, default=660)
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +37,7 @@ def update_list(song):
     if not TESTING:
         database.mark_song_played(song.song_id)
         # log that its done
-        with open('%s/mindful.log' % util.BASE_PATH, 'a') as f:
+        with open('%s/mindful.log' % utils.BASE_PATH, 'a') as f:
             f.write("Played %s at %s\n" % (song.title, datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y")))
 
 
@@ -93,7 +93,7 @@ def download_song(url):
         os.remove(get_song_path())
 
     # download and move to correct play path (for some versions only)
-    with util.chdir(util.BASE_PATH):
+    with utils.chdir(utils.BASE_PATH):
         logger.info("Downloading {}".format(url))
         ydl_opts = {
             'format': 'bestaudio/best',
@@ -108,7 +108,7 @@ def download_song(url):
 
 
 def get_song_path():
-    potential_song_path = os.path.join(util.BASE_PATH, SONG_PLAY_PATH)
+    potential_song_path = os.path.join(utils.BASE_PATH, SONG_PLAY_PATH)
     try:
         return glob.glob(potential_song_path)[0]
     except IndexError:
@@ -138,7 +138,7 @@ def main(testing=False, skip_mindful=False, skip_slack=False, skip_discord=False
         TESTING = testing
 
     logger.info('Loading songs')
-    unplayed = database.load_songs(include_played=False, include_out_of_office=False, priority=True)
+    unplayed = database.load_songs(include_played=False, include_out_of_office=False)
 
     logger.info('Selecting song')
     song = select_song(unplayed)
@@ -207,7 +207,7 @@ def discord_notification(msg, thumbnail_url):
     logger.info(cmd)
 
     if "None" != discord_url:
-        for i in range(util.get_config_parser().getint('discord', 'retries', fallback=2)):
+        for i in range(utils.get_config_parser().getint('discord', 'retries', fallback=2)):
             try:
                 subprocess.call(['curl', '-X', 'POST', '-H', '"Content-Type: application/json"',
                                  '--data', payload, discord_url])
@@ -221,7 +221,7 @@ def discord_notification(msg, thumbnail_url):
 def notification_message(song):
     chosen_str = " chosen by {username}".format(username=song.username) if song.username != "Unknown" else ""
     server_url = SERVER_URL if SERVER_URL != "None" else "http://{hostname}:{port}".format(
-        hostname=socket.gethostname(), port=util.read_config('server', 'port', type=int, default=util.DEFAULT_PORT))
+        hostname=socket.gethostname(), port=utils.read_config('server', 'port', type=int, default=utils.DEFAULT_PORT))
     msg = "The song of the day is: {song_name}{chosen_str}: {url} \\n" \
           "To add your songs please visit {server_url}, " \
           "or to provide bug reports or feature requests please visit {repo_url}" \
@@ -231,12 +231,12 @@ def notification_message(song):
 
 
 def get_slack_url():
-    slack_url = util.read_config('slack', 'url')
+    slack_url = utils.read_config('slack', 'url')
     return slack_url
 
 
 def get_discord_url():
-    discord_url = util.read_config('discord', 'url')
+    discord_url = utils.read_config('discord', 'url')
     return discord_url
 
 

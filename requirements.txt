@@ -1,4 +1,6 @@
 # conda install -y --file requirements.txt
-psycopg2
 click
 flask
+pytest
+psycopg2
+sqlalchemy

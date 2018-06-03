@@ -72,7 +72,7 @@
         <div id="header" style="position:relative;text-align:left;">
             <div id="sampleLink" style="position:absolute; top:0px; right:0px;">
                 <a href="https://github.com/w-martin/mindfulness/issues" type="button"
-                   class="btn btn-default" role="button">Request Feature or Bug Fix</a>
+                   class="btn btn-default" role="button">Request feature or Submit bug report</a>
             </div>
             <h2 style="text-align:left">Add a Song</h2>
         </div>
@@ -87,11 +87,11 @@
                        placeholder="Copy and paste the youtube link e.g. https://www.youtube.com/watch?v=9X_ViIPA-Gc">
                 <br>
                 <input type='button' name='autoDesc' class="btn btn-info"
-                       value='Auto Fill Description (takes 10s!)' onclick="validateName()" />
+                       value='Auto Fill Description (takes several seconds)' onclick="validateName()" />
                 <br><br>
                 <label for="songName">Song Description (Artist/Title):</label>
                 <input type="text" class="form-control" id="songName" name="songName"
-                       placeholder="What is the Artist/Name of the song?">
+                       placeholder="What is the Artist and Title of the song?">
 
             {% if christmas_mode %}
                     <br>
@@ -106,17 +106,17 @@
     <div class="jumbotron" id="playlist">
         <h2>Song Queue</h2>
         <label class="checkbox-inline"><input type="checkbox" id="checkShowPlayed" value=""
-                                              onchange="togglePlayed()">Show Played Songs?</label>
+                                              onchange="togglePlayed()">Show Played</label>
         <label class="checkbox-inline"><input type="checkbox" id="checkShowOutOfOffice" value=""
-                                              onchange="toggleOutOfOffice()">Show Out Of Office Songs?</label><br><br>
+                                              onchange="toggleOutOfOffice()">Show Out Of Office</label><br><br>
     </div>
     <script>
             d3.text("/playlist?showPlayed=" + showPlayed() + "&showOutOfOffice=" + showOutOfOffice(), function(data){
                 var parsedCSV = d3.csv.parseRows(data);
 
-                var no_unplayed = parsedCSV.length;
+                var no_songs = parsedCSV.length;
                 var container = d3.select("#playlist")
-                    .append("text").text(no_unplayed + " unplayed songs")
+                    .append("text").text(no_songs + " songs")
                     .append("table").attr("class", "table table-hover")
 
                     .selectAll("tr")
