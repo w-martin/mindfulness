@@ -5,6 +5,7 @@
     <title>Mindfulness Song Manager</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js" charset="utf-8"></script>
     <link rel="stylesheet" type="text/css" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
     <script>
@@ -21,17 +22,22 @@
         }
         function togglePlayed()
         {
-            localStorage.setItem('showPlayed', document.getElementById("checkShowPlayed").checked)
+            localStorage.setItem('showPlayed', document.getElementById("checkShowPlayed").checked);
             window.location.reload(false);
         }
         function toggleOutOfOffice()
         {
-            localStorage.setItem('showOutOfOffice', document.getElementById("checkShowOutOfOffice").checked)
+            localStorage.setItem('showOutOfOffice', document.getElementById("checkShowOutOfOffice").checked);
             window.location.reload(false);
         }
         function toggleCycleFilter()
         {
-            localStorage.setItem('showCycleFilter', document.getElementById("checkShowCycleFilter").checked)
+            localStorage.setItem('showCycleFilter', document.getElementById("checkShowCycleFilter").checked);
+            window.location.reload(false);
+        }
+        function togglePriorityFilter()
+        {
+            localStorage.setItem('showPriorityFilter', document.getElementById("checkShowPriorityFilter").checked);
             window.location.reload(false);
         }
         function showPlayed()
@@ -54,6 +60,13 @@
             if(null === showCycleFilter){showCycleFilter = 'false';}
             document.getElementById("checkShowCycleFilter").checked = showCycleFilter === 'true';
             return showCycleFilter;
+        }
+        function showPriorityFilter()
+        {
+            var showPriorityFilter = localStorage.getItem('showPriorityFilter');
+            if(null === showPriorityFilter){showPriorityFilter = 'false';}
+            document.getElementById("checkShowPriorityFilter").checked = showPriorityFilter === 'true';
+            return showPriorityFilter;
         }
     </script>
 
@@ -117,8 +130,11 @@
 
     <div class="jumbotron" id="playlist">
         <h2>Song Queue</h2>
-        <label class="checkbox-inline"><input type="checkbox" id="checkShowCycleFilter" value=""
-                                              onchange="toggleCycleFilter()" checked>User Cycle</label>
+        <label class="checkbox-inline"><input type="checkbox" id="checkShowCycleFilter" value="" checked="True"
+                                              onchange="toggleCycleFilter()">User Cycle (default)</label>
+
+        <label class="checkbox-inline"><input type="checkbox" id="checkShowPriorityFilter" value="" checked="True"
+                                              onchange="togglePriorityFilter()">Priority day/month if present (default)</label>
 
         <label class="checkbox-inline"><input type="checkbox" id="checkShowPlayed" value=""
                                               onchange="togglePlayed()">Show Played</label>
@@ -128,7 +144,10 @@
         <br><br>
     </div>
     <script>
-            d3.text("/playlist?showPlayed=" + showPlayed() + "&showOutOfOffice=" + showOutOfOffice() + "&showCycleFilter=" + showCycleFilter(), function(data){
+            d3.text("/playlist?showPlayed=" + showPlayed()
+                + "&showOutOfOffice=" + showOutOfOffice()
+                + "&showCycleFilter=" + showCycleFilter()
+                + "&showPriorityFilter=" + showPriorityFilter(), function(data){
                 var parsedCSV = d3.csv.parseRows(data);
 
                 var no_songs = parsedCSV.length;

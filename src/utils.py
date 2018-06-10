@@ -45,8 +45,12 @@ def remove_commas_from_string(input_string):
     return input_string.replace(',', '')
 
 
-def get_cycle_days():
+def get_user_cycle_days():
     return read_config('general', 'cycle_user_days', type=int, default=14)
+
+
+def get_played_cycle_days():
+    return read_config('general', 'repeat_min_wait_days', type=int, default=365)
 
 
 def get_title_from_youtube_url(url):

@@ -15,6 +15,7 @@ import vlc
 import youtube_dl
 
 import database
+import playlists
 import utils
 
 # paths
@@ -127,18 +128,6 @@ def get_thumbnail_url(url):
     return ''
 
 
-def _get_songs():
-    days = utils.get_cycle_days()
-    songs = database.load_songs(include_played=False, include_out_of_office=False,
-                                cycle_users_timedelta=datetime.timedelta(days=days))
-    if len(songs) == 0:
-        while days > 0 and len(songs) == 0:
-            days -= 1
-            songs = database.load_songs(include_played=False, include_out_of_office=False,
-                                        cycle_users_timedelta=datetime.timedelta(days=days))
-    return songs
-
-
 @click.command(context_settings=dict(ignore_unknown_options=True, allow_extra_args=True))
 @click.option('--testing', is_flag=True, help='Test the script without downloading or playing.')
 @click.option('--skip-mindful', is_flag=True, help='Test the script without playing mindfulness.', default=False)
@@ -150,7 +139,7 @@ def main(testing=False, skip_mindful=False, skip_slack=False, skip_discord=False
         TESTING = testing
 
     logger.info('Loading songs')
-    unplayed = _get_songs()
+    unplayed = playlists.get_songs()
 
     logger.info('Selecting song')
     song = select_song(unplayed)

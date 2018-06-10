@@ -5,13 +5,15 @@ import click
 from flask import Flask, render_template, url_for, request, redirect
 
 import database
+import playlists
 import utils
 
 TEMPLATE_DIR = os.path.join(utils.BASE_PATH, "templates")
+STATIC_DIR = os.path.join(utils.BASE_PATH, "static")
 INDEX_HTML = 'index.html'
 CHRISTMAS_MODE = utils.read_config('modes', 'christmas', type=bool, default=False)
 
-app = Flask(__name__, template_folder=TEMPLATE_DIR)
+app = Flask(__name__, template_folder=TEMPLATE_DIR, static_folder=STATIC_DIR)
 
 
 @click.command()
@@ -28,18 +30,6 @@ def _convert_first_href(line):
     return ",".join(x)
 
 
-def _get_songs(show_played, show_out_of_office, show_cycle_filter):
-    days = utils.get_cycle_days()
-    songs = database.load_songs(include_played=show_played, include_out_of_office=show_out_of_office,
-                                cycle_users_timedelta=datetime.timedelta(days=days) if show_cycle_filter else None)
-    if len(songs) == 0 and show_cycle_filter and not show_played:
-        while days > 0 and len(songs) == 0:
-            days -= 1
-            songs = database.load_songs(include_played=show_played, include_out_of_office=show_out_of_office,
-                                        cycle_users_timedelta=datetime.timedelta(days=days))
-    return songs
-
-
 @app.route('/playlist')
 def print_csv():
     """ This prints out the CSV with a header added """
@@ -47,10 +37,13 @@ def print_csv():
     show_played = request.args.get('showPlayed', 'true') == 'true'
     show_out_of_office = request.args.get('showOutOfOffice', 'true') == 'true'
     show_cycle_filter = request.args.get('showCycleFilter', 'true') == 'true'
-    songs = _get_songs(show_played, show_out_of_office, show_cycle_filter)
-    entries = ['<a href={url}>{url}</a>,{title},{username}'.format(url=s.url, title=s.title, username=s.username)
+    show_priority_filter = request.args.get('showPriorityFilter', 'true') == 'true'
+    songs = playlists.get_songs(include_played=show_played, include_out_of_office=show_out_of_office,
+                                cycle_users=show_cycle_filter, priority_filter=show_priority_filter)
+    entries = ['<a href={url}>{url}</a>,{title},{username},{priority}'.format(
+        url=s.url, title=s.title, username=s.username, priority=str(s.day is not None or s.month is not None))
                for s in songs]
-    header_line = "YouTube Link,Song Name,Added by"
+    header_line = "YouTube Link,Song Name,Added by,Priority day/month"
     return "{}\n{}".format(header_line, '\n'.join(entries))
 
 
