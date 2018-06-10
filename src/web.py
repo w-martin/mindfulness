@@ -8,10 +8,11 @@ import database
 import utils
 
 TEMPLATE_DIR = os.path.join(utils.BASE_PATH, "templates")
+STATIC_DIR = os.path.join(utils.BASE_PATH, "static")
 INDEX_HTML = 'index.html'
 CHRISTMAS_MODE = utils.read_config('modes', 'christmas', type=bool, default=False)
 
-app = Flask(__name__, template_folder=TEMPLATE_DIR)
+app = Flask(__name__, template_folder=TEMPLATE_DIR, static_folder=STATIC_DIR)
 
 
 @click.command()
