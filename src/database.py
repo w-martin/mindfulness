@@ -117,9 +117,11 @@ class Vote(Base):
     song = relationship('Song', foreign_keys=[song_id])
 
 
-def mark_song_played(song_id):
+def mark_song_played(song_id, date=None):
+    if date is None:
+        date = datetime.date.today()
     with session_scope() as session:
-        played = Play(song_id=song_id, date=datetime.date.today())
+        played = Play(song_id=song_id, date=date)
         try:
             session.add(played)
             session.flush()
@@ -167,15 +169,21 @@ def filter_priority(songs):
         return [s for s in songs if not s.month and not s.day]
 
 
-def load_songs(include_played=True, include_out_of_office=False, cycle_users_timedelta=None):
+def load_songs(include_played=False, include_out_of_office=False, cycle_users_timedelta=None,
+               apply_priority=True, cycle_played_timedelta=None):
+    """
+    Load songs from the database.
+
+    :param bool include_played: include played songs
+    :param bool include_out_of_office: include songs from users who are out of office
+    :param datetime.timedelta|None cycle_users_timedelta: time delta to cycle users in
+    :param bool apply_priority: filters non priority if priority songs are present
+    :param datetime.timedelta|None cycle_played_timedelta: time delta to cycle played songs in
+    :return: [SongTuple]
+    """
     songs = []
     with session_scope() as session:
         query = session.query(Song)
-
-        # filter played
-        if not include_played:
-            play_subquery = session.query(Play.song_id)
-            query = query.filter(Song.song_id.notin_(play_subquery))
 
         # filter out of office
         if not include_out_of_office:
@@ -190,6 +198,17 @@ def load_songs(include_played=True, include_out_of_office=False, cycle_users_tim
                 filter(Play.date > cut_off_date)
             query = query.filter(Song.user_id.notin_(play_cycle_subquery))
 
+        if not include_played:
+            if cycle_played_timedelta:
+                cut_off_date = (datetime.datetime.now() - cycle_played_timedelta).date()
+                play_cycle_subquery = session.query(Song.song_id).join(Play).\
+                    filter(Play.date > cut_off_date)
+                query = query.filter(Song.song_id.notin_(play_cycle_subquery))
+            # filter played
+            else:
+                play_subquery = session.query(Play.song_id)
+                query = query.filter(Song.song_id.notin_(play_subquery))
+
         song_results = query.all()
         for result in song_results:
             song = SongTuple(song_id=result.song_id,
@@ -199,6 +218,12 @@ def load_songs(include_played=True, include_out_of_office=False, cycle_users_tim
                              month=result.month,
                              day=result.day)
             songs += [song]
+    if apply_priority:
+        day = datetime.date.today().isoweekday()
+        month = datetime.date.today().month
+        filtered_songs = [s for s in songs if s.month == month or s.day == day]
+        if filtered_songs:
+            songs = filtered_songs
     return songs
 
 
