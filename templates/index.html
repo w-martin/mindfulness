@@ -94,7 +94,7 @@
             localStorage.setItem('username', name);
             console.log('Image URL: ' + profile.getImageUrl());
             var email = profile.getEmail();
-            console.log('Email: ' + email); // This is null if the 'email' scope is not present.
+            console.log('Email: ' + email);
             addSignOutButton(name, email);
 
             d3.select('#submitButton').style('stroke', 'green')
@@ -104,12 +104,15 @@
                     var form = d3.select(this.parentNode).node();
                     form.submit();
                 });
+            console.log('Signed in');
         }
 
         function addSignOutButton(name, email) {
             d3.select('#userAuthentication').html('<div id="signedInText" ' +
                 '>Signed in as ' + name + ' (' + email + ')</div>' +
-                '<input id="signOutButton" type="button" value="Sign out" onclick="signOut()">');
+                '<input id="signOutButton" type="button" value="Sign out" onclick="signOut()">' +
+                '<input type="hidden" name="username" value="' + name + '" />' +
+                '<input type="hidden" name="email" value="' + email + '" />');
             console.log('Added sign out button');
         }
 

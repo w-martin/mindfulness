@@ -59,14 +59,15 @@ def get_song_name():
 @app.route("/add-entry/", methods=["POST"])
 def add_entry():
     """ Adds an entry to the CSV database, and refreshes the home page to update """
-    username = request.args.get('username', 'Unknown')
+    username = request.form['username']
+    email = request.form['email']
     link = utils.remove_commas_from_string(request.form["ytLink"])
     song = utils.remove_commas_from_string(request.form["songName"])
 
     festive = CHRISTMAS_MODE and "christmasSong" in request.form
 
     try:
-        database.add_song(link, song, username, month=12 if festive else None)
+        database.add_song(link, song, username, month=12 if festive else None, email=email)
     except database.KeyExistsError:
         pass
 

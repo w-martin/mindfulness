@@ -55,8 +55,8 @@ def get_played_cycle_days():
 
 def get_title_from_youtube_url(url):
     try:
-        output = str(subprocess.check_output(['youtube-dl', '--get-title', url, '--no-warnings'],
-                                             stderr=subprocess.STDOUT)).strip()
+        output = subprocess.check_output(['youtube-dl', '--get-title', url, '--no-warnings'],
+                                         stderr=subprocess.STDOUT).decode('utf8')
     except subprocess.CalledProcessError as ex:
         output = str(ex.output).strip()
     except OSError as ex:

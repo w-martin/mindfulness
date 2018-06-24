@@ -59,6 +59,7 @@ class User(Base):
 
     user_id = Column('user_id', Integer, primary_key=True)
     name = Column('name', String, unique=True)
+    email = Column('email', String)
     admin = Column('admin', Boolean)
     password = Column('password', String)
 
@@ -148,16 +149,16 @@ class SongTuple(song_tuple):
         return "('%s' chosen by %s)" % (self.title, self.username)
 
 
-user_tuple = namedtuple('user', ['name', 'admin', 'password'])
+user_tuple = namedtuple('user', ['name', 'email', 'admin', 'password'])
 
 
 class UserTuple(user_tuple):
 
     def __str__(self):
-        return '{}'.format(self.name)
+        return '{} ({})'.format(self.name, self.email)
 
     def __repr__(self):
-        return "{}".format(self.name)
+        return self.__str__()
 
 
 def filter_priority(songs):
@@ -227,9 +228,9 @@ def load_songs(include_played=False, include_out_of_office=False, cycle_users_ti
     return songs
 
 
-def add_song(url, title, user_name, month=None, day=None):
+def add_song(url, title, user_name, month=None, day=None, email=None):
     with session_scope() as session:
-        user_id = get_userid(user_name, add_user=True)
+        user_id = get_userid(user_name, email, add_user=True)
         song = Song(title=title, url=url, user_id=user_id)
         if month:
             song.month = month
@@ -253,14 +254,21 @@ def get_songs_size():
     return no_songs
 
 
-def get_userid(username, add_user=True):
+def get_userid(username, email, add_user=True):
     user_id = None
     with session_scope() as session:
-        users = session.query(User).filter_by(name=username).all()
+        query = session.query(User)
+        query = query.filter_by(name=username)
+        users = query.all()
         if users:
             user = users[0]
+            if user.email != email:
+                # update / add email address
+                user.email = email
+                session.flush()
+                session.commit()
         elif add_user:
-            user = User(name=username, admin=False)
+            user = User(name=username, email=email, admin=False)
             try:
                 session.add(user)
                 session.flush()
