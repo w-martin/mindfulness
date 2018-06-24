@@ -8,80 +8,148 @@
     <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    <script src="https://apis.google.com/js/platform.js" async defer></script>
     <script>
-        function validateName(){
-          document.getElementById('songName').value =
-              httpGet("/song_name?url=" + document.getElementById("ytLink").value);
+        var googleClientId = '{{ googleClientId|safe }}';
+        d3.select('head').append('meta')
+            .attr('name', "google-signin-client_id")
+            .attr('content',  googleClientId);
+        console.log('Set google client id as ' + googleClientId);
+    </script>
+    <meta name="google-signin-client_id" content=>
+    <script>
+        function validateName() {
+            document.getElementById('songName').value =
+                httpGet("/song_name?url=" + document.getElementById("ytLink").value);
         }
-        function httpGet(theUrl)
-        {
+
+        function httpGet(theUrl) {
             var xmlHttp = new XMLHttpRequest();
-            xmlHttp.open( "GET", theUrl, false ); // false for synchronous request
-            xmlHttp.send( null );
+            xmlHttp.open("GET", theUrl, false); // false for synchronous request
+            xmlHttp.send(null);
             return xmlHttp.responseText;
         }
-        function togglePlayed()
-        {
+
+        function togglePlayed() {
             localStorage.setItem('showPlayed', document.getElementById("checkShowPlayed").checked);
             window.location.reload(false);
         }
-        function toggleOutOfOffice()
-        {
+
+        function toggleOutOfOffice() {
             localStorage.setItem('showOutOfOffice', document.getElementById("checkShowOutOfOffice").checked);
             window.location.reload(false);
         }
-        function toggleCycleFilter()
-        {
+
+        function toggleCycleFilter() {
             localStorage.setItem('showCycleFilter', document.getElementById("checkShowCycleFilter").checked);
             window.location.reload(false);
         }
-        function togglePriorityFilter()
-        {
+
+        function togglePriorityFilter() {
             localStorage.setItem('showPriorityFilter', document.getElementById("checkShowPriorityFilter").checked);
             window.location.reload(false);
         }
-        function showPlayed()
-        {
+
+        function showPlayed() {
             var showPlayedSongs = localStorage.getItem('showPlayed');
-            if(null === showPlayedSongs){showPlayedSongs = 'false';}
+            if (null === showPlayedSongs) {
+                showPlayedSongs = 'false';
+            }
             document.getElementById("checkShowPlayed").checked = showPlayedSongs === 'true';
             return showPlayedSongs;
         }
-        function showOutOfOffice()
-        {
+
+        function showOutOfOffice() {
             var showOutOfOffice = localStorage.getItem('showOutOfOffice');
-            if(null === showOutOfOffice){showOutOfOffice = 'false';}
+            if (null === showOutOfOffice) {
+                showOutOfOffice = 'false';
+            }
             document.getElementById("checkShowOutOfOffice").checked = showOutOfOffice === 'true';
             return showOutOfOffice;
         }
-        function showCycleFilter()
-        {
+
+        function showCycleFilter() {
             var showCycleFilter = localStorage.getItem('showCycleFilter');
-            if(null === showCycleFilter){showCycleFilter = 'false';}
+            if (null === showCycleFilter) {
+                showCycleFilter = 'false';
+            }
             document.getElementById("checkShowCycleFilter").checked = showCycleFilter === 'true';
             return showCycleFilter;
         }
-        function showPriorityFilter()
-        {
+
+        function showPriorityFilter() {
             var showPriorityFilter = localStorage.getItem('showPriorityFilter');
-            if(null === showPriorityFilter){showPriorityFilter = 'false';}
+            if (null === showPriorityFilter) {
+                showPriorityFilter = 'false';
+            }
             document.getElementById("checkShowPriorityFilter").checked = showPriorityFilter === 'true';
             return showPriorityFilter;
+        }
+
+        function onSignIn(googleUser) {
+            var profile = googleUser.getBasicProfile();
+            console.log('ID: ' + profile.getId()); // Do not send to your backend! Use an ID token instead.
+            var name = profile.getName();
+            console.log('Name: ' + name);
+            localStorage.setItem('username', name);
+            console.log('Image URL: ' + profile.getImageUrl());
+            var email = profile.getEmail();
+            console.log('Email: ' + email);
+            addSignOutButton(name, email);
+
+            d3.select('#submitButton').style('stroke', 'green')
+                .text('Submit')
+                .on('click', function () {
+                    // later, submit form?
+                    var form = d3.select(this.parentNode).node();
+                    form.submit();
+                });
+            console.log('Signed in');
+        }
+
+        function addSignOutButton(name, email) {
+            d3.select('#userAuthentication').html('<div id="signedInText" ' +
+                '>Signed in as ' + name + ' (' + email + ')</div>' +
+                '<input id="signOutButton" type="button" value="Sign out" onclick="signOut()">' +
+                '<input type="hidden" name="username" value="' + name + '" />' +
+                '<input type="hidden" name="email" value="' + email + '" />');
+            console.log('Added sign out button');
+        }
+
+        function signOut() {
+            var auth2 = gapi.auth2.getAuthInstance();
+            auth2.signOut().then(function () {
+                console.log('User signed out.');
+            });
+            window.location.reload(false);
+        }
+
+        function addSignInButton() {
+            d3.select('#userAuthentication').html('<div class="g-signin2" id="signInButton" ' +
+                'data-onsuccess="onSignIn"></div>');
+            console.log('Added sign in button');
+
+            d3.select('#submitButton').style('stroke', 'gray')
+                .on('click', function () {
+                    // prevent form submission
+                    d3.event.stopPropagation();
+                    d3.event.preventDefault();
+                });
         }
     </script>
 
     <meta charset="utf-8">
     <style>
-            table {
-                border-collapse: collapse;
-                border: 2px black solid;
-                font: 12px sans-serif;
-            }
+        table {
+            border-collapse: collapse;
+            border: 2px black solid;
+            font: 12px sans-serif;
+        }
 
-            td {
-                border: 1px black solid;
-                padding: 5px;
-            }
+        td {
+            border: 1px black solid;
+            padding: 5px;
+        }
     </style>
 </head>
 
@@ -104,27 +172,28 @@
         <p class="lead"></p>
         <form action="/add-entry/" method="post">
             <div class="form-group">
-                <label for="name">Your Name:</label>
-                <input type="text" class="form-control" id="name" name="name" placeholder="What's your name?">
+                <label>Your Name:</label>
+                <div id="userAuthentication">
+                </div>
                 <br>
                 <label for="ytLink">YouTube Link:</label>
                 <input type="text" class="form-control" id="ytLink" name="ytLink"
                        placeholder="Copy and paste the youtube link e.g. https://www.youtube.com/watch?v=9X_ViIPA-Gc">
                 <br>
                 <input type='button' name='autoDesc' class="btn btn-info"
-                       value='Auto Fill Description (takes several seconds)' onclick="validateName()" />
+                       value='Auto Fill Description (takes several seconds)' onclick="validateName()"/>
                 <br><br>
                 <label for="songName">Song Description (Artist/Title):</label>
                 <input type="text" class="form-control" id="songName" name="songName"
                        placeholder="What is the Artist and Title of the song?">
 
-            {% if christmas_mode %}
-                    <br>
+                {% if christmas_mode %}
+                <br>
                 <input type="checkbox" name="christmasSong">Christmas Song
-            {% endif %}
+                {% endif %}
 
             </div>
-            <button type="submit" class="btn btn-success">Submit</button>
+            <button type="submit" id="submitButton"><s>Submit</s></button>
         </form>
     </div>
 
@@ -144,30 +213,43 @@
         <br><br>
     </div>
     <script>
-            d3.text("/playlist?showPlayed=" + showPlayed()
-                + "&showOutOfOffice=" + showOutOfOffice()
-                + "&showCycleFilter=" + showCycleFilter()
-                + "&showPriorityFilter=" + showPriorityFilter(), function(data){
-                var parsedCSV = d3.csv.parseRows(data);
+        d3.text("/playlist?showPlayed=" + showPlayed()
+            + "&showOutOfOffice=" + showOutOfOffice()
+            + "&showCycleFilter=" + showCycleFilter()
+            + "&showPriorityFilter=" + showPriorityFilter(), function (data) {
+            var parsedCSV = d3.csv.parseRows(data);
 
-                var no_songs = parsedCSV.length;
-                var container = d3.select("#playlist")
-                    .append("text").text(no_songs + " songs")
-                    .append("table").attr("class", "table table-hover")
+            var no_songs = parsedCSV.length;
+            var container = d3.select("#playlist")
+                .append("text").text(no_songs + " songs")
+                .append("table").attr("class", "table table-hover");
 
-                    .selectAll("tr")
-                        .data(parsedCSV).enter()
-                        .append("tr")
+            container.append("thead").append("tr")
+                .selectAll("th")
+                .data(parsedCSV[0])
+                .enter().append("th")
+                .text(function (d) {
+                    return d;
+                });
 
-                    .selectAll("td")
-                        .data(function(d) { return d; }).enter()
-                        .append("td")
-                        .html(function(d) { return d; });
-            });
+            container.selectAll("tr")
+                .data(parsedCSV.slice(1)).enter()
+                .append("tr")
+
+                .selectAll("td")
+                .data(function (d) {
+                    return d;
+                }).enter()
+                .append("td")
+                .html(function (d) {
+                    return d;
+                });
+        });
     </script>
 
     <footer class="footer">
-        <div id="footerText" style="position:relative;text-align:left;"><!-- define relative so child absolute's are based on this elements origin -->
+        <div id="footerText" style="position:relative;text-align:left;">
+            <!-- define relative so child absolute's are based on this elements origin -->
             <div id="mindfulnessLink" style="position:absolute; top:0px; right:0px;">
                 <a href="https://github.com/w-martin/mindfulness">https://github.com/w-martin/mindfulness</a>
             </div>
@@ -176,5 +258,9 @@
 
 </div>
 </body>
+
+<script>
+    addSignInButton();
+</script>
 
 </html>

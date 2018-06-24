@@ -12,6 +12,7 @@ TEMPLATE_DIR = os.path.join(utils.BASE_PATH, "templates")
 STATIC_DIR = os.path.join(utils.BASE_PATH, "static")
 INDEX_HTML = 'index.html'
 CHRISTMAS_MODE = utils.read_config('modes', 'christmas', type=bool, default=False)
+GOOGLE_CLIENT_ID = utils.read_config('google', 'client_id', type=str, default='')
 
 app = Flask(__name__, template_folder=TEMPLATE_DIR, static_folder=STATIC_DIR)
 
@@ -20,14 +21,9 @@ app = Flask(__name__, template_folder=TEMPLATE_DIR, static_folder=STATIC_DIR)
 @click.option('--christmas', default=False)
 @app.route("/")
 def main(christmas=CHRISTMAS_MODE):
-    return render_template(INDEX_HTML, christmas_mode=christmas)
-
-
-def _convert_first_href(line):
-    """ This converts the first entry on the line to an a-href """
-    x = line.split(',')
-    x[0] = '<a href=%(url)s>%(url)s</a>' % {'url': x[0]}
-    return ",".join(x)
+    return render_template(INDEX_HTML,
+                           christmas_mode=christmas,
+                           googleClientId=GOOGLE_CLIENT_ID)
 
 
 @app.route('/playlist')
@@ -63,14 +59,15 @@ def get_song_name():
 @app.route("/add-entry/", methods=["POST"])
 def add_entry():
     """ Adds an entry to the CSV database, and refreshes the home page to update """
-    username = utils.remove_commas_from_string(request.form["name"])
+    username = request.form['username']
+    email = request.form['email']
     link = utils.remove_commas_from_string(request.form["ytLink"])
     song = utils.remove_commas_from_string(request.form["songName"])
 
     festive = CHRISTMAS_MODE and "christmasSong" in request.form
 
     try:
-        database.add_song(link, song, username, month=12 if festive else None)
+        database.add_song(link, song, username, month=12 if festive else None, email=email)
     except database.KeyExistsError:
         pass
 
